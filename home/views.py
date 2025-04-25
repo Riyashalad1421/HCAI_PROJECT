@@ -13,9 +13,9 @@ def index(request):
     
     
     students = [
-        {"name": "Rita Barbosa", "matriculation": "645593"},
-        {"name": "Yash Indulkar", "matriculation": "642352"},
-        {"name": "Riyasha Lad", "matriculation": "641409"},
+        {"name": "Rita Barbosa ", "matriculation": "645593"},
+        {"name": "Yash Indulkar ", "matriculation": "642352"},
+        {"name": "Riyasha Lad  ", "matriculation": "641409"},
         {"name": "Shivangi Pathak", "matriculation": "641285"},
         {"name": "Vishwesh Jagtap", "matriculation": "641524"},
     ]
