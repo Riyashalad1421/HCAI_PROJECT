@@ -13,9 +13,11 @@ def index(request):
     
     
     students = [
-        {"name": "Jane Doe", "matriculation": "123456"},
-        {"name": "John Smith", "matriculation": "654321"},
-        {"name": "Alex Johnson", "matriculation": "789012"},
+        {"name": "Rita Barbosa", "matriculation": "645593"},
+        {"name": "Yash Indulkar", "matriculation": "642352"},
+        {"name": "Riyasha Lad", "matriculation": "641409"},
+        {"name": "Shivangi Pathak", "matriculation": "641285"},
+        {"name": "Vishwesh Jagtap", "matriculation": "641524"},
     ]
     
     projects = [
