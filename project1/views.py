@@ -1,5 +1,7 @@
 from django.shortcuts import render
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend before importing pyplot
 import matplotlib.pyplot as plt
 import numpy as np
 import io
