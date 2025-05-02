@@ -115,6 +115,22 @@
                     <canvas id="scatterChart"></canvas>
                 </div>
             </div>
+
+
+            <!-- Model training -->
+            <div style="margin-top: 40px;">
+                <h3>Train a Machine Learning Model</h3>
+                <form id="train-model-form">
+                    {% csrf_token %}
+                    {{ train_form.as_p }}
+                    <button type="submit">Train Model</button>
+                </form>
+                <div id="model-result"></div>
+            </div>
+            
+            
+            
+            
         {% endif %}
         
         {% if plots %}
@@ -246,6 +262,48 @@
     document.addEventListener('DOMContentLoaded', function() {
         updateChart();
     });
+
+
+    //asynchronous call for updating training metrics without loading the page
+    document.getElementById('train-model-form').addEventListener('submit', function(event) {
+    event.preventDefault(); // prevent full page reload
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const resultContainer = document.getElementById('model-result');
+
+    fetch("{% url 'project1:train_model_ajax' %}", {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            resultContainer.innerHTML = `<p style="color:red;">${data.error}</p>`;
+            return;
+        }
+
+        let html = `<h4>Model Performance Report</h4><table border="1" style="margin-top:10px;"><thead><tr><th>Label</th><th>Precision</th><th>Recall</th><th>F1 Score</th></tr></thead><tbody>`;
+        for (let label in data.report) {
+            let metrics = data.report[label];
+            html += `<tr>
+                <td>${label}</td>
+                <td>${metrics.precision}</td>
+                <td>${metrics.recall}</td>
+                <td>${metrics.f1_score}</td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        resultContainer.innerHTML = html;
+    })
+    .catch(err => {
+        resultContainer.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+    });
+});
 </script>
 {% endif %}
 {% endblock script %} 
