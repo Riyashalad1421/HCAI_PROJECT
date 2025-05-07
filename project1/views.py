@@ -18,8 +18,14 @@ import io
 import base64
 import json
 from .forms import CSVUploadForm, ModelTrainForm
+import os
+from io import StringIO
+from django.conf import settings
+import tempfile
+import uuid
 
-
+# Global variable to store the CSV data
+CSV_STORAGE = {}
 
 #Very basic view as an example
 def index(request):
@@ -41,7 +47,6 @@ def upload_csv(request):
     features = None
     train_form = ModelTrainForm()
     model_report = None
-
     
     if request.method == 'POST':
         form = CSVUploadForm(request.POST, request.FILES)
@@ -64,7 +69,6 @@ def upload_csv(request):
 
                     # Store CSV data in session as a string
                     request.session['uploaded_csv'] = df.to_csv(index=False)
-
                     
                     # Get row count for display
                     row_count = len(df)
@@ -162,7 +166,6 @@ def upload_csv(request):
         'unique_classes': unique_classes_json,
         'train_form': train_form,
         'model_report': model_report,
-
     })
 
 
@@ -331,11 +334,12 @@ def train_model_ajax(request):
                 return JsonResponse({'error': 'No CSV uploaded in session'}, status=400)
 
             df = pd.read_csv(io.StringIO(csv_string))
+
             X = df.iloc[:, :-1]
             y = df.iloc[:, -1]
 
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
-
+            
             if model_type == 'logistic':
                 model = LogisticRegression(max_iter=1000)
             elif model_type == 'tree':
@@ -344,7 +348,7 @@ def train_model_ajax(request):
                 model = SVC()
             else:
                 return JsonResponse({'error': 'Unsupported model'}, status=400)
-
+            
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
             raw_report = classification_report(y_test, y_pred, output_dict=True)
