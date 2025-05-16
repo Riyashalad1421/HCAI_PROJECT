@@ -5,9 +5,9 @@ class CSVUploadForm(forms.Form):
 
 class ModelTrainForm(forms.Form):
     MODEL_CHOICES = [
-        ('logistic', 'Logistic Regression'),
-        ('tree', 'Decision Tree'),
+        ('rf', 'Random Forest'),
         ('svm', 'Support Vector Machine'),
+        ('xgb', 'Extreme Gradient Boost'),
     ]
     
     model_type = forms.ChoiceField(choices=MODEL_CHOICES, label="Model Type")
