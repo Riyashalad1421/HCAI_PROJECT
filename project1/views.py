@@ -2,6 +2,7 @@ from django.shortcuts import render
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 from django.http import JsonResponse
 from sklearn.ensemble import RandomForestClassifier
@@ -336,6 +337,13 @@ def train_model_ajax(request):
 
             X = df.iloc[:, :-1]
             y = df.iloc[:, -1]
+            if y.dtype == 'object' or y.dtype.name == 'category':
+                le = LabelEncoder()
+                y = le.fit_transform(y)
+
+            # Scale features
+            scaler = StandardScaler()
+            X = scaler.fit_transform(X)
 
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
             if model_type == 'rf':
@@ -370,8 +378,19 @@ def train_model_ajax(request):
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
 
-            raw_report = classification_report(y_test, y_pred, output_dict=True)
 
+                        # Convert numeric predictions back to original labels (if LabelEncoder was used)
+            if 'le' in locals():  # Only if label encoding was applied
+                y_pred_labels = le.inverse_transform(y_pred)
+                y_test_labels = le.inverse_transform(y_test)
+            else:
+                y_pred_labels = y_pred
+                y_test_labels = y_test
+
+            # Classification report based on original (string) labels
+            raw_report = classification_report(y_test_labels, y_pred_labels, output_dict=True)
+
+            # Cleaned up report for frontend
             cleaned = {
                 label: {
                     'precision': round(metrics.get('precision', 0), 2),
@@ -381,6 +400,12 @@ def train_model_ajax(request):
                 for label, metrics in raw_report.items() if isinstance(metrics, dict)
             }
 
+            # (Optional) add predictions to response
+            response = {
+                'report': cleaned,
+                'predictions': list(y_pred_labels),
+                'truth': list(y_test_labels)
+            }
             return JsonResponse({'report': cleaned})
 
         except Exception as e:
