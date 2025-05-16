@@ -1,13 +1,12 @@
 from django.shortcuts import render
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
 from django.http import JsonResponse
-
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
 
 import pandas as pd
 import matplotlib
@@ -339,18 +338,38 @@ def train_model_ajax(request):
             y = df.iloc[:, -1]
 
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
-            
-            if model_type == 'logistic':
-                model = LogisticRegression(max_iter=1000)
-            elif model_type == 'tree':
-                model = DecisionTreeClassifier()
+            if model_type == 'rf':
+                model = RandomForestClassifier(
+                    n_estimators=100, #user input1
+                    max_depth=5,      #user input2
+                    max_features='sqrt',  #user input3
+                    min_samples_split=2,
+                    min_samples_leaf=1,
+                    random_state=42
+                )
             elif model_type == 'svm':
-                model = SVC()
+                model = SVC(
+                    kernel='rbf', #user input1
+                    C=1,          #user input2
+                    gamma=0.1,    #user input3
+                    probability=True  # optional if you need probabilities
+                )
+            elif model_type == 'xgb':
+                model = XGBClassifier(
+                    n_estimators=100,    #user input1
+                    learning_rate=0.01,  #user input2
+                    max_depth=3,         #user input3
+                    subsample=0.8,
+                    colsample_bytree=1.0,
+                    use_label_encoder=False,
+                    eval_metric='mlogloss'
+                )
             else:
                 return JsonResponse({'error': 'Unsupported model'}, status=400)
-            
+
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
+
             raw_report = classification_report(y_test, y_pred, output_dict=True)
 
             cleaned = {
