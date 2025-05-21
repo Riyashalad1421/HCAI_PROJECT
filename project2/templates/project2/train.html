@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="box">
+  <div class="title-container">
+    <div class="title">Project 2: Text Classification</div>
+  </div>
+
+  <div class="main-text">
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit">Train Classifier</button>
+    </form>
+
+    {% if result %}
+      <h3>Test Accuracy: {{ result }}</h3>
+      <p><strong>Best CV Accuracy:</strong> {{ best_cv_score }}</p>
+      <p><strong>Best Parameters:</strong></p>
+      <ul>
+        {% for key, value in best_params.items %}
+          <li>{{ key }}: {{ value }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

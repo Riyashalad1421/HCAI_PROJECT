@@ -34,6 +34,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     "django.contrib.admin",
     "project1",
+    "project2",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -140,5 +141,5 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'assets')
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Use file-based sessions instead of database sessions
-SESSION_ENGINE = "django.contrib.sessions.backends.file"
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_FILE_PATH = os.path.join(BASE_DIR, 'temp_sessions')
