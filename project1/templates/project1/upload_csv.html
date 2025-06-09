@@ -20,6 +20,67 @@
       box-sizing: border-box;
       margin: 0 auto;
     }
+    
+    /* Form styling */
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input[type="number"],
+    .form-group input[type="text"],
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      max-width: 300px;
+    }
+    
+    .form-text {
+      font-size: 0.85em;
+      color: #6c757d;
+      margin-top: 5px;
+    }
+    
+    /* Button styling */
+    button[type="submit"] {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    button[type="submit"]:hover {
+      background-color: #45a049;
+    }
+    
+    /* Results table styling */
+    #model-result table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    
+    #model-result th,
+    #model-result td {
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    
+    #model-result th {
+      background-color: #f2f2f2;
+    }
   </style>
 {% endblock %}
 
@@ -118,14 +179,95 @@
 
 
             <!-- Model training -->
-            <div style="margin-top: 40px;">
+            <div style="margin-top: 40px; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
                 <h3>Train a Machine Learning Model</h3>
                 <form id="train-model-form">
                     {% csrf_token %}
-                    {{ train_form.as_p }}
-                    <button type="submit">Train Model</button>
+                    <div class="form-group">
+                        <label for="id_model_type">{{ train_form.model_type.label }}:</label>
+                        {{ train_form.model_type }}
+                        <small class="form-text text-muted">Select the machine learning algorithm to use</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_test_size">{{ train_form.test_size.label }}:</label>
+                        {{ train_form.test_size }}
+                        <small class="form-text text-muted">Proportion of the dataset to include in the test split</small>
+                    </div>
+                    
+                    <!-- Random Forest Parameters -->
+                    <div id="rf-params" class="model-params" style="display: none; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+                        <h4>Random Forest Parameters</h4>
+                        
+                        <div class="form-group">
+                            <label for="id_rf_n_estimators">{{ train_form.rf_n_estimators.label }}:</label>
+                            {{ train_form.rf_n_estimators }}
+                            <small class="form-text text-muted">{{ train_form.rf_n_estimators.help_text }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_rf_max_depth">{{ train_form.rf_max_depth.label }}:</label>
+                            {{ train_form.rf_max_depth }}
+                            <small class="form-text text-muted">{{ train_form.rf_max_depth.help_text }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_rf_max_features">{{ train_form.rf_max_features.label }}:</label>
+                            {{ train_form.rf_max_features }}
+                            <small class="form-text text-muted">{{ train_form.rf_max_features.help_text }}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- SVM Parameters -->
+                    <div id="svm-params" class="model-params" style="display: none; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+                        <h4>Support Vector Machine Parameters</h4>
+                        
+                        <div class="form-group">
+                            <label for="id_svm_kernel">{{ train_form.svm_kernel.label }}:</label>
+                            {{ train_form.svm_kernel }}
+                            <small class="form-text text-muted">{{ train_form.svm_kernel.help_text }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_svm_C">{{ train_form.svm_C.label }}:</label>
+                            {{ train_form.svm_C }}
+                            <small class="form-text text-muted">{{ train_form.svm_C.help_text }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_svm_gamma">{{ train_form.svm_gamma.label }}:</label>
+                            {{ train_form.svm_gamma }}
+                            <small class="form-text text-muted">{{ train_form.svm_gamma.help_text }}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- XGBoost Parameters -->
+                    <div id="xgb-params" class="model-params" style="display: none; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+                        <h4>XGBoost Parameters</h4>
+                        
+                        <div class="form-group">
+                            <label for="id_xgb_n_estimators">{{ train_form.xgb_n_estimators.label }}:</label>
+                            {{ train_form.xgb_n_estimators }}
+                            <small class="form-text text-muted">{{ train_form.xgb_n_estimators.help_text }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_xgb_learning_rate">{{ train_form.xgb_learning_rate.label }}:</label>
+                            {{ train_form.xgb_learning_rate }}
+                            <small class="form-text text-muted">{{ train_form.xgb_learning_rate.help_text }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_xgb_max_depth">{{ train_form.xgb_max_depth.label }}:</label>
+                            {{ train_form.xgb_max_depth }}
+                            <small class="form-text text-muted">{{ train_form.xgb_max_depth.help_text }}</small>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" style="margin-top: 20px; padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Train Model</button>
                 </form>
-                <div id="model-result"></div>
+                
+                <div id="model-result" style="margin-top: 20px;"></div>
             </div>
             
             
@@ -261,6 +403,33 @@
     // Initialize chart with default features
     document.addEventListener('DOMContentLoaded', function() {
         updateChart();
+        
+        // Set up model parameter visibility toggling
+        const modelTypeSelect = document.getElementById('id_model_type');
+        const paramSections = document.querySelectorAll('.model-params');
+        
+        // Initial state based on selected model
+        updateModelParams();
+        
+        // Change event to update visibility
+        modelTypeSelect.addEventListener('change', updateModelParams);
+        
+        function updateModelParams() {
+            // Hide all parameter sections first
+            paramSections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Show the relevant section based on selection
+            const selectedModel = modelTypeSelect.value;
+            if (selectedModel === 'rf') {
+                document.getElementById('rf-params').style.display = 'block';
+            } else if (selectedModel === 'svm') {
+                document.getElementById('svm-params').style.display = 'block';
+            } else if (selectedModel === 'xgb') {
+                document.getElementById('xgb-params').style.display = 'block';
+            }
+        }
     });
 
 
@@ -271,6 +440,31 @@
     const form = event.target;
     const formData = new FormData(form);
     const resultContainer = document.getElementById('model-result');
+    
+    // Show loading indicator
+    resultContainer.innerHTML = '<p>Training model, please wait...</p>';
+    
+    // Add relevant model parameters to formData based on selected model
+    const modelType = document.getElementById('id_model_type').value;
+    
+    if (modelType === 'rf') {
+        // Add Random Forest specific parameters
+        formData.append('rf_n_estimators', document.getElementById('id_rf_n_estimators').value);
+        formData.append('rf_max_depth', document.getElementById('id_rf_max_depth').value);
+        formData.append('rf_max_features', document.getElementById('id_rf_max_features').value);
+    } 
+    else if (modelType === 'svm') {
+        // Add SVM specific parameters
+        formData.append('svm_kernel', document.getElementById('id_svm_kernel').value);
+        formData.append('svm_C', document.getElementById('id_svm_C').value);
+        formData.append('svm_gamma', document.getElementById('id_svm_gamma').value);
+    }
+    else if (modelType === 'xgb') {
+        // Add XGBoost specific parameters
+        formData.append('xgb_n_estimators', document.getElementById('id_xgb_n_estimators').value);
+        formData.append('xgb_learning_rate', document.getElementById('id_xgb_learning_rate').value);
+        formData.append('xgb_max_depth', document.getElementById('id_xgb_max_depth').value);
+    }
 
     fetch("{% url 'project1:train_model_ajax' %}", {
         method: 'POST',
@@ -287,17 +481,33 @@
             return;
         }
 
-        let html = `<h4>Model Performance Report</h4><table border="1" style="margin-top:10px;"><thead><tr><th>Label</th><th>Precision</th><th>Recall</th><th>F1 Score</th></tr></thead><tbody>`;
+        let html = `
+        <div style="margin-top: 20px; padding: 15px; background-color: #e9f7ef; border-radius: 5px; border-left: 5px solid #28a745;">
+            <h4 style="margin-top: 0;">Model Performance Report</h4>
+            <table border="1" style="margin-top:10px; width: 100%; border-collapse: collapse;">
+                <thead style="background-color: #f2f2f2;">
+                    <tr>
+                        <th style="padding: 8px; text-align: left;">Label</th>
+                        <th style="padding: 8px; text-align: center;">Precision</th>
+                        <th style="padding: 8px; text-align: center;">Recall</th>
+                        <th style="padding: 8px; text-align: center;">F1 Score</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
         for (let label in data.report) {
             let metrics = data.report[label];
             html += `<tr>
-                <td>${label}</td>
-                <td>${metrics.precision}</td>
-                <td>${metrics.recall}</td>
-                <td>${metrics.f1_score}</td>
+                <td style="padding: 8px; text-align: left;">${label}</td>
+                <td style="padding: 8px; text-align: center;">${metrics.precision}</td>
+                <td style="padding: 8px; text-align: center;">${metrics.recall}</td>
+                <td style="padding: 8px; text-align: center;">${metrics.f1_score}</td>
             </tr>`;
         }
-        html += '</tbody></table>';
+        
+        html += `</tbody></table>
+        </div>`;
+        
         resultContainer.innerHTML = html;
     })
     .catch(err => {

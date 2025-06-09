@@ -346,27 +346,44 @@ def train_model_ajax(request):
             X = scaler.fit_transform(X)
 
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+            
+            # Get model-specific parameters from form data
             if model_type == 'rf':
+                # Get Random Forest parameters
+                n_estimators = int(request.POST.get('rf_n_estimators', 100))
+                max_depth = int(request.POST.get('rf_max_depth', 5))
+                max_features = request.POST.get('rf_max_features', 'sqrt')
+                
                 model = RandomForestClassifier(
-                    n_estimators=100, #user input1
-                    max_depth=5,      #user input2
-                    max_features='sqrt',  #user input3
+                    n_estimators=n_estimators,
+                    max_depth=max_depth,
+                    max_features=max_features,
                     min_samples_split=2,
                     min_samples_leaf=1,
                     random_state=42
                 )
             elif model_type == 'svm':
+                # Get SVM parameters
+                kernel = request.POST.get('svm_kernel', 'rbf')
+                C = float(request.POST.get('svm_C', 1.0))
+                gamma = float(request.POST.get('svm_gamma', 0.1))
+                
                 model = SVC(
-                    kernel='rbf', #user input1
-                    C=1,          #user input2
-                    gamma=0.1,    #user input3
-                    probability=True  # optional if you need probabilities
+                    kernel=kernel,
+                    C=C,
+                    gamma=gamma,
+                    probability=True
                 )
             elif model_type == 'xgb':
+                # Get XGBoost parameters
+                n_estimators = int(request.POST.get('xgb_n_estimators', 100))
+                learning_rate = float(request.POST.get('xgb_learning_rate', 0.01))
+                max_depth = int(request.POST.get('xgb_max_depth', 3))
+                
                 model = XGBClassifier(
-                    n_estimators=100,    #user input1
-                    learning_rate=0.01,  #user input2
-                    max_depth=3,         #user input3
+                    n_estimators=n_estimators,
+                    learning_rate=learning_rate,
+                    max_depth=max_depth,
                     subsample=0.8,
                     colsample_bytree=1.0,
                     use_label_encoder=False,
@@ -378,8 +395,7 @@ def train_model_ajax(request):
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
 
-
-                        # Convert numeric predictions back to original labels (if LabelEncoder was used)
+            # Convert numeric predictions back to original labels (if LabelEncoder was used)
             if 'le' in locals():  # Only if label encoding was applied
                 y_pred_labels = le.inverse_transform(y_pred)
                 y_test_labels = le.inverse_transform(y_test)
