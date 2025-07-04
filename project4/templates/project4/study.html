@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Taste Profiler</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+      background-color: #f4f6f8;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    .rating-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    ul {
+      padding-left: 20px;
+      text-align: left;
+    }
+    .stars {
+      font-weight: bold;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Simulated Rating Impact</h2>
+    <p><strong>Movie:</strong> {{ movie_title }}</p>
+
+    <div class="rating-section">
+      {% for rating_key, recommendations in prediction_impact.items %}
+        <div class="stars">{{ rating_key|title }} → Top Recommendations:</div>
+        <ul>
+          {% for movie in recommendations %}
+            <li>{{ movie }}</li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="box">
+    <div class="title-container">
+        <div class="title">Project 4: Recommender System Cold-Start Study</div>
+    </div>
+
+    <div class="main-text">
+        <p class="centered-text">
+            In this study, we explore how showing users the impact of their responses affects the learning process in recommendation systems.
+        </p>
+
+        <div class="button-container" style="margin-top: 30px;">
+            <form action="{% url 'project4:download' %}" method="get" style="margin-bottom: 10px;">
+                {% csrf_token %}
+                <button type="submit" style="padding: 12px 24px; background-color: #4f7ecb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                     Download PDF
+                </button>
+            </form>
+
+            <form action="{% url 'project4:study' %}" method="get">
+                {% csrf_token %}
+                <button type="submit" style="padding: 12px 24px; background-color: #4f7ecb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                     Start the Study
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{% endblock script %}
