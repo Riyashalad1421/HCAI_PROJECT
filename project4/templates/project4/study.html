@@ -1,56 +1,166 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Movie Taste Profiler</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      padding: 40px;
-      background-color: #f4f6f8;
-    }
-    .container {
-      background: white;
-      padding: 30px;
-      max-width: 600px;
-      margin: auto;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
-    }
-    h2 {
-      margin-bottom: 10px;
-    }
-    .rating-section {
-      margin: 20px 0;
-      padding: 15px;
-      background: #f9f9f9;
-      border-radius: 8px;
-    }
-    ul {
-      padding-left: 20px;
-      text-align: left;
-    }
-    .stars {
-      font-weight: bold;
-      margin-top: 15px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Simulated Rating Impact</h2>
-    <p><strong>Movie:</strong> {{ movie_title }}</p>
+{% extends 'base.html' %}
+{% load static %}
 
-    <div class="rating-section">
-      {% for rating_key, recommendations in prediction_impact.items %}
-        <div class="stars">{{ rating_key|title }} → Top Recommendations:</div>
-        <ul>
-          {% for movie in recommendations %}
-            <li>{{ movie }}</li>
-          {% endfor %}
-        </ul>
-      {% endfor %}
+{% block content %}
+<div class="box">
+    <div class="title-container" style="text-align: center; margin-bottom: 30px;">
+        <h2 style="font-size: 26px;">Project 4: Recommender System Cold-Start Study</h2>
     </div>
-  </div>
-</body>
-</html>
+
+    <div class="main-text" style="max-width: 1200px; margin: 0 auto; padding: 0 12px;">
+        <div style="background: #f8f8fc; border-radius: 10px; padding: 24px 18px 30px 18px; margin-bottom: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <form method="POST" style="text-align: center; margin-bottom: 30px;">
+                {% csrf_token %}
+                <label for="movie_title" style="margin-right: 10px;">Select a movie:</label>
+                <select name="movie_title" id="movie_title" style="width: 300px; padding: 6px;">
+                    <option value="" disabled selected>None</option>
+                    {% for title in all_titles %}
+                        <option value="{{ title }}" {% if movie_title and title == movie_title %}selected{% endif %}>{{ title }}</option>
+                    {% endfor %}
+                </select>
+                <br><br>
+                <button type="submit" style="margin-top: 10px; padding: 10px 20px; background-color: #4a78c2; color: white; border: none; border-radius: 4px;">Submit</button>
+            </form>
+
+            {% if prediction_impact %}
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; max-width: 1200px; margin: 0 auto;">
+                <!-- Chart Section -->
+                <div style="flex: 1 1 30%; min-width: 300px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <h3 style="text-align: center;">Your Rating Impact</h3>
+                    <canvas id="recommendationChart" width="340" height="300" style="display: block; margin: 0 auto;"></canvas>
+                </div>
+
+                <!-- Recommendations Section -->
+                <div style="flex: 1 1 30%; min-width: 300px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <h3 style="text-align: center;">Recommendations by Stars</h3>
+                    {% for rating, titles in prediction_impact.items %}
+                        <div style="margin-bottom: 12px;">
+                            <strong>{{ rating }}</strong>
+                            <ul style="padding-left: 18px;">
+                                {% for title in titles %}
+                                <li>{{ title }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Feedback Section -->
+                <div style="flex: 1 1 30%; min-width: 300px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <h3 style="text-align: center;">Feedback</h3>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div style="margin-bottom: 12px;">
+                            <label for="feedback" style="font-weight: bold;">How helpful was this?</label>
+                            <select name="feedback" id="feedback" style="width: 100%; padding: 8px; margin-top: 6px;">
+                                <option value="" disabled selected>Select one</option>
+                                <option value="very_helpful"> Very Helpful</option>
+                                <option value="somewhat_helpful"> Somewhat Helpful</option>
+                                <option value="not_helpful"> Not Helpful</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label for="comments" style="font-weight: bold;">Additional Comments</label>
+                            <textarea name="comments" id="comments" rows="3" style="width: 100%; padding: 8px;" placeholder="Your thoughts..."></textarea>
+                        </div>
+                        <div style="text-align: right;">
+                            <button type="submit" name="submit_feedback" value="1" style="padding: 8px 16px; background-color: #4a78c2; color: white; border: none; border-radius: 4px;">
+                                Submit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: gray; font-style: italic;">Please select a movie to see recommendations.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+
+{% if feedback_submitted %}
+<div style="background-color: #e6ffe6; border: 1px solid #4CAF50; color: #2e7d32; padding: 12px; text-align: center; border-radius: 6px; margin-bottom: 20px;">
+    ✅ Thank you for your feedback!
+</div>
+{% endif %}
+
+{% if prediction_impact %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const data = {
+        labels: ['Rating Impact'],
+        datasets: [
+            {
+                label: '1-star',
+                data: [{{ prediction_impact.1_stars|length }}],
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: '3-star',
+                data: [{{ prediction_impact.3_stars|length }}],
+                backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                borderColor: 'rgba(255, 206, 86, 1)',
+                borderWidth: 1
+            },
+            {
+                label: '5-star',
+                data: [{{ prediction_impact.5_stars|length }}],
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    const config = {
+        type: 'bar',
+        data: data,
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Recommendation Impact Based on Your Rating',
+                    font: {
+                        size: 18
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                },
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Recommendations'
+                    }
+                }
+            }
+        }
+    };
+
+    new Chart(document.getElementById('recommendationChart'), config);
+</script>
+{% endif %}
+{% endblock %}
