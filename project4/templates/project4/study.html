@@ -2,8 +2,8 @@
 {% load static %}
 
 {% block content %}
-<!-- Project 4 Study Interface - Fixed template syntax errors -->
-<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+<!-- Project 4 Study Interface - Complete version -->
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box;">
     
     <!-- Header with Navigation Tabs -->
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px;">
@@ -43,20 +43,22 @@
     </div>
     {% endif %}
 
-    {% if feedback_submitted %}
-    <div style="background-color: #e6ffe6; border: 1px solid #4CAF50; color: #2e7d32; padding: 15px; text-align: center; border-radius: 6px; margin-bottom: 20px;">
-        ✅ Thank you for your feedback!
-    </div>
-    {% endif %}
-
     <!-- TAB 1: STUDY INTERFACE -->
-    <div id="studyContent" class="tab-content">
+    <div id="studyContent" class="tab-content" style="max-width: 1200px; margin: 0 auto;">
+        
+        <!-- Feedback Success Message - Only show in study tab -->
+        {% if feedback_submitted %}
+        <div id="feedbackSuccessMessage" style="background-color: #e6ffe6; border: 1px solid #4CAF50; color: #2e7d32; padding: 15px; text-align: center; border-radius: 6px; margin-bottom: 20px; transition: opacity 0.5s ease-out;">
+            ✅ Thank you for your feedback!
+        </div>
+        {% endif %}
+        
         <div style="background: #f8f9fc; border-radius: 10px; padding: 25px; margin-bottom: 25px;">
             
             <!-- Instructions -->
             <div style="background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4f7ecb;">
                 <h3 style="margin: 0 0 10px 0; color: #4f7ecb; font-size: 20px;">📋 Instructions</h3>
-                <p style="margin: 0; line-height: 1.6;">
+                <p style="margin: 0; line-height: 1.6; text-align: left;">
                     Select a movie from the dropdown below. Our system will show you how rating it with 1, 3, or 5 stars 
                     would affect your future movie recommendations. This helps you understand the impact of your choices!
                 </p>
@@ -94,7 +96,7 @@
                         <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
                             {% for title in all_titles|slice:":6" %}
                             <button type="button" onclick="selectMovie('{{ title }}')" 
-                                    style="padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 15px; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                                    style="color: #333; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 15px; font-size: 12px; cursor: pointer; transition: all 0.2s;">
                                 {{ title|truncatechars:20 }}
                             </button>
                             {% endfor %}
@@ -102,17 +104,17 @@
                     </div>
                     
                     <button type="submit" style="padding: 15px 30px; background-color: #4a78c2; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
-                        🔍 Analyze Impact
+                        <span>Analyze Impact</span>
                     </button>
                 </div>
             </form>
 
             <!-- IMPROVED PREDICTION IMPACT LAYOUT -->
             {% if prediction_impact %}
-            <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="margin: 0 auto; width: 100%;">
                 
                 <!-- Row 1: Chart and Recommendations -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; max-width: 100%;">
                     
                     <!-- Chart Section - Larger and more prominent -->
                     <div style="background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
@@ -167,7 +169,7 @@
                 </div>
 
                 <!-- Row 2: Feedback Section - Full width for better experience -->
-                <div style="background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                <div style="background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); max-width: 100%;">
                     <h3 style="text-align: center; color: #4f7ecb; margin: 0 0 20px 0; font-size: 20px; border-bottom: 2px solid #4f7ecb; padding-bottom: 10px;">
                         💬 Share Your Experience
                     </h3>
@@ -213,10 +215,17 @@
                         </div>
                         
                         <!-- Submit Button -->
-                        <div style="text-align: center;">
+                        <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid #e9ecef;">
                             <button type="submit" name="submit_feedback" value="1" 
-                                    style="padding: 15px 30px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
-                                📝 Submit Your Feedback
+                                    style="padding: 14px 24px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3); width: auto; max-width: 280px; position: relative; overflow: hidden; white-space: nowrap;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(40, 167, 69, 0.4)'"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 20px rgba(40, 167, 69, 0.3)'"
+                                    onmousedown="this.style.transform='translateY(1px)'"
+                                    onmouseup="this.style.transform='translateY(-2px)'">
+                                <span style="display: inline-flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 18px;">📝</span>
+                                    <span>Submit Your Feedback</span>
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -242,7 +251,7 @@
     </div>
 
     <!-- TAB 2: ANALYTICS -->
-    <div id="analyticsContent" class="tab-content" style="display: none;">
+    <div id="analyticsContent" class="tab-content" style="display: none; max-width: 1200px; margin: 0 auto;">
         <div style="background: #fff; padding: 25px; border-radius: 8px; margin-bottom: 20px;">
             <h3 style="margin: 0 0 20px 0; text-align: center; color: #333;">📊 Analytics Dashboard</h3>
             
@@ -275,7 +284,7 @@
     </div>
 
     <!-- TAB 3: FEEDBACK REVIEW -->
-    <div id="feedbackContent" class="tab-content" style="display: none;">
+    <div id="feedbackContent" class="tab-content" style="display: none; max-width: 1200px; margin: 0 auto;">
         <div style="background: #fff; padding: 25px; border-radius: 8px;">
             <h3 style="margin: 0 0 20px 0; text-align: center; color: #333;">📋 Recent Feedback</h3>
             <div style="max-height: 400px; overflow-y: auto;">
@@ -302,7 +311,7 @@
     </div>
 
     <!-- TAB 4: MOVIE INSIGHTS -->
-    <div id="insightsContent" class="tab-content" style="display: none;">
+    <div id="insightsContent" class="tab-content" style="display: none; max-width: 1200px; margin: 0 auto;">
         <div style="background: #fff; padding: 25px; border-radius: 8px;">
             <h3 style="margin: 0 0 20px 0; text-align: center; color: #333;">🎬 Popular Movies</h3>
             {% for movie in popular_test_movies|slice:":5" %}
@@ -319,7 +328,7 @@
     </div>
 
     <!-- TAB 5: USER JOURNEY -->
-    <div id="journeyContent" class="tab-content" style="display: none;">
+    <div id="journeyContent" class="tab-content" style="display: none; max-width: 1200px; margin: 0 auto;">
         <div style="background: #fff; padding: 25px; border-radius: 8px; margin-bottom: 20px;">
             <h3 style="margin: 0 0 20px 0; text-align: center; color: #333;">🚀 User Journey Analytics</h3>
             
@@ -349,7 +358,9 @@
             <!-- Helpfulness Trend Chart -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
                 <h4 style="margin: 0 0 15px 0; color: #333; text-align: center;">📈 Helpfulness Trend (Last 7 Days)</h4>
-                <canvas id="helpfulnessTrendChart" width="600" height="200"></canvas>
+                <div style="position: relative; height: 250px; width: 100%; overflow: hidden;">
+                    <canvas id="helpfulnessTrendChart" style="max-width: 100%; max-height: 100%;"></canvas>
+                </div>
             </div>
 
             <!-- Recent Activity Timeline -->
@@ -375,12 +386,12 @@
                     </div>
                 </div>
 
-                <!-- Activity Timeline - FIXED -->
+                <!-- Activity Timeline -->
                 <div style="max-height: 350px; overflow-y: auto;">
                     {% for entry in completion_data %}
                     <div class="activity-item" 
                          data-helpfulness="{{ entry.helpfulness }}"
-                         data-has-comment="{{ entry.has_comment }}"
+                         data-has-comment="{% if entry.has_comment %}true{% else %}false{% endif %}"
                          data-time="{{ entry.submitted_at }}"
                          style="display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: {% if forloop.counter0|divisibleby:2 %}#ffffff{% else %}#f8f9fa{% endif %}; border-radius: 6px; border-left: 3px solid {% if entry.helpfulness == 'very_helpful' %}#28a745{% elif entry.helpfulness == 'somewhat_helpful' %}#ffc107{% else %}#dc3545{% endif %};">
                         
@@ -409,3 +420,447 @@
                                     {{ entry.time_formatted }}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="text-align: center; color: #666; margin: 40px 0;">No activity data available yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Tab Management
+function showTab(tabName) {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => {
+        content.style.display = 'none';
+    });
+
+    // Remove active class from all tab buttons
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(button => {
+        button.style.background = 'rgba(255,255,255,0.1)';
+        button.classList.remove('active');
+    });
+
+    // Show selected tab content
+    document.getElementById(tabName + 'Content').style.display = 'block';
+
+    // Activate selected tab button
+    const activeButton = document.getElementById(tabName + 'Tab');
+    activeButton.style.background = 'rgba(255,255,255,0.2)';
+    activeButton.classList.add('active');
+
+    // Initialize charts if switching to analytics or journey tabs
+    if (tabName === 'analytics') {
+        initializeAnalyticsCharts();
+    } else if (tabName === 'journey') {
+        initializeJourneyCharts();
+    }
+}
+
+// Movie Selection Functions
+function selectMovie(movieTitle) {
+    document.getElementById('movie_title').value = movieTitle;
+    document.getElementById('movieSearch').value = movieTitle;
+}
+
+function filterMovies() {
+    const searchInput = document.getElementById('movieSearch');
+    const movieSelect = document.getElementById('movie_title');
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    if (searchTerm.length < 2) {
+        return;
+    }
+    
+    // Filter options
+    const options = movieSelect.querySelectorAll('option');
+    let firstMatch = null;
+    
+    options.forEach(option => {
+        if (option.value === '') return; // Skip placeholder
+        
+        const movieTitle = option.value.toLowerCase();
+        if (movieTitle.includes(searchTerm)) {
+            option.style.display = 'block';
+            if (!firstMatch) {
+                firstMatch = option;
+            }
+        } else {
+            option.style.display = 'none';
+        }
+    });
+    
+    // Auto-select first match if available
+    if (firstMatch) {
+        movieSelect.value = firstMatch.value;
+    }
+}
+
+// Chart for Recommendation Impact
+{% if prediction_impact %}
+function initializeRecommendationChart() {
+    const ctx = document.getElementById('recommendationChart');
+    if (!ctx) return;
+
+    const chartData = {
+        labels: ['1 Star', '3 Stars', '5 Stars'],
+        datasets: [{
+            label: 'Number of Recommendations',
+            data: [
+                {{ prediction_impact.1_stars|length }},
+                {{ prediction_impact.3_stars|length }},
+                {{ prediction_impact.5_stars|length }}
+            ],
+            backgroundColor: [
+                'rgba(244, 67, 54, 0.8)',   // Red for 1 star
+                'rgba(255, 152, 0, 0.8)',   // Orange for 3 stars  
+                'rgba(33, 150, 243, 0.8)'   // Blue for 5 stars
+            ],
+            borderColor: [
+                'rgba(244, 67, 54, 1)',
+                'rgba(255, 152, 0, 1)',
+                'rgba(33, 150, 243, 1)'
+            ],
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
+        }]
+    };
+
+    const config = {
+        type: 'bar',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Rating Impact on Recommendations',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    padding: {
+                        top: 5,
+                        bottom: 20
+                    },
+                    color: '#4f7ecb'
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    cornerRadius: 6,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y} recommendations for ${context.label}`;
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Recommendations',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        stepSize: 1,
+                        color: '#6c757d'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Your Rating',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#6c757d'
+                    }
+                }
+            },
+            animation: {
+                duration: 800,
+                easing: 'easeInOutQuart'
+            }
+        }
+    };
+
+    new Chart(ctx, config);
+}
+
+// Initialize recommendation chart when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeRecommendationChart();
+});
+{% endif %}
+
+// Analytics Charts
+function initializeAnalyticsCharts() {
+    // This would be populated with real data from Django context
+    console.log('Analytics charts initialized');
+}
+
+// Journey Charts
+function initializeJourneyCharts() {
+    const ctx = document.getElementById('helpfulnessTrendChart');
+    if (!ctx) return;
+
+    // Sample data - replace with real data from Django
+    const trendData = {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            label: 'Very Helpful',
+            data: [12, 19, 15, 25, 22, 18, 20],
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            fill: true
+        }, {
+            label: 'Somewhat Helpful',
+            data: [8, 12, 10, 15, 14, 11, 13],
+            borderColor: '#ffc107',
+            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+            fill: true
+        }, {
+            label: 'Not Helpful',
+            data: [3, 5, 4, 2, 3, 2, 4],
+            borderColor: '#dc3545',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            fill: true
+        }]
+    };
+
+    new Chart(ctx, {
+        type: 'line',
+        data: trendData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Responses'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            elements: {
+                line: {
+                    tension: 0.3
+                },
+                point: {
+                    radius: 4,
+                    hoverRadius: 6
+                }
+            }
+        }
+    });
+}
+
+// Activity Filtering
+function filterActivity() {
+    const filter = document.getElementById('activityFilter').value;
+    const activities = document.querySelectorAll('.activity-item');
+    
+    activities.forEach(activity => {
+        let show = true;
+        
+        switch(filter) {
+            case 'very_helpful':
+                show = activity.dataset.helpfulness === 'very_helpful';
+                break;
+            case 'with_comments':
+                show = activity.dataset.hasComment === 'true';
+                break;
+            case 'recent':
+                // Show entries from last 24 hours
+                const entryTime = new Date(activity.dataset.time);
+                const now = new Date();
+                const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                show = entryTime > dayAgo;
+                break;
+            default:
+                show = true;
+        }
+        
+        activity.style.display = show ? 'flex' : 'none';
+    });
+}
+
+// Auto-dismiss feedback message
+document.addEventListener('DOMContentLoaded', function() {
+    const feedbackMessage = document.getElementById('feedbackSuccessMessage');
+    if (feedbackMessage) {
+        // Auto-dismiss after 4 seconds
+        setTimeout(function() {
+            feedbackMessage.style.opacity = '0';
+            setTimeout(function() {
+                feedbackMessage.style.display = 'none';
+            }, 500); // Wait for fade out transition
+        }, 4000); // Show for 4 seconds
+        
+        // Also allow manual dismiss by clicking
+        feedbackMessage.addEventListener('click', function() {
+            this.style.opacity = '0';
+            setTimeout(() => {
+                this.style.display = 'none';
+            }, 500);
+        });
+        
+        // Add click cursor to indicate it's clickable
+        feedbackMessage.style.cursor = 'pointer';
+        feedbackMessage.title = 'Click to dismiss';
+    }
+    
+    // Enhanced movie selection dropdown
+    const movieSelect = document.getElementById('movie_title');
+    const searchInput = document.getElementById('movieSearch');
+    
+    if (movieSelect) {
+        movieSelect.addEventListener('focus', function() {
+            this.style.borderColor = '#4f7ecb';
+            this.style.boxShadow = '0 0 0 0.2rem rgba(79, 126, 203, 0.25)';
+        });
+        
+        movieSelect.addEventListener('blur', function() {
+            this.style.borderColor = '#ddd';
+            this.style.boxShadow = 'none';
+        });
+    }
+    
+    // Search input enhancements
+    if (searchInput) {
+        searchInput.addEventListener('focus', function() {
+            this.style.borderColor = '#4f7ecb';
+            this.style.boxShadow = '0 0 0 0.2rem rgba(79, 126, 203, 0.25)';
+        });
+        
+        searchInput.addEventListener('blur', function() {
+            this.style.borderColor = '#ddd';
+            this.style.boxShadow = 'none';
+        });
+    }
+
+    // Feedback form enhancements
+    const feedbackSelect = document.getElementById('feedback');
+    const commentsTextarea = document.getElementById('comments');
+    
+    if (feedbackSelect) {
+        feedbackSelect.addEventListener('focus', function() {
+            this.style.borderColor = '#28a745';
+            this.style.boxShadow = '0 0 0 0.2rem rgba(40, 167, 69, 0.25)';
+        });
+        
+        feedbackSelect.addEventListener('blur', function() {
+            this.style.borderColor = '#ddd';
+            this.style.boxShadow = 'none';
+        });
+    }
+    
+    if (commentsTextarea) {
+        commentsTextarea.addEventListener('focus', function() {
+            this.style.borderColor = '#28a745';
+            this.style.boxShadow = '0 0 0 0.2rem rgba(40, 167, 69, 0.25)';
+        });
+        
+        commentsTextarea.addEventListener('blur', function() {
+            this.style.borderColor = '#ddd';
+            this.style.boxShadow = 'none';
+        });
+    }
+
+    // Popular movie buttons hover effects
+    const popularButtons = document.querySelectorAll('button[onclick^="selectMovie"]');
+    popularButtons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.background = '#e9ecef';
+            this.style.transform = 'translateY(-1px)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.background = '#f8f9fa';
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Tab button hover effects
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = 'rgba(255,255,255,0.15)';
+            }
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = 'rgba(255,255,255,0.1)';
+            }
+        });
+    });
+});
+
+// Auto-refresh functionality for real-time data (optional)
+function autoRefreshData() {
+    // This could periodically fetch new data for analytics
+    // Implementation would depend on your backend setup
+    console.log('Auto-refresh triggered');
+}
+
+// Set up auto-refresh every 5 minutes (optional)
+// setInterval(autoRefreshData, 300000);
+</script>
+{% endblock %}
