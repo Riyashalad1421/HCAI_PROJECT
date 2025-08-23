@@ -1,17 +1,25 @@
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.middleware.csrf import get_token
 import numpy as np
 import uuid
+import json
+import torch
 from .mouse import (
     initialize_grid_with_cheese_types, print_grid_with_cheese_types, 
-    move, get_reward, ACTIONS
+    move, get_reward, ACTIONS, MOUSE, CHEESE, TRAP, WALL, ORGANIC_CHEESE, EMPTY
 )
 from .models import GameState, Trajectory, HumanFeedback, PolicyModel, TrainingSession
+from .reinforce_trainer import ReinforceTrainer
+from .policy_network import PolicyNetwork
+
+# Global trainer instance
+trainer = ReinforceTrainer()
 
 def project5_landing(request):
     """Landing page for Project 5 with environment test"""
     
-    # Test the mouse environment using your uploaded file
     try:
         grid, mouse_pos, cheese_pos, organic_cheese_positions = initialize_grid_with_cheese_types()
         
@@ -42,35 +50,50 @@ def project5_landing(request):
         session_count = TrainingSession.objects.count()
         
         html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Project 5: RLHF Mouse Game</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }}
+                .status-box {{ background: #e6ffe6; padding: 15px; border-radius: 5px; border-left: 4px solid green; margin: 20px 0; }}
+                .action-box {{ background: #fff8dc; padding: 15px; border-radius: 5px; border-left: 4px solid orange; margin: 20px 0; }}
+                .button {{ padding: 10px 20px; margin: 5px; color: white; text-decoration: none; border-radius: 4px; display: inline-block; }}
+                .btn-primary {{ background-color: #4f7ecb; }}
+                .btn-success {{ background-color: #6b8e23; }}
+                .btn-warning {{ background-color: #cd853f; }}
+                .btn-info {{ background-color: #17a2b8; }}
+                pre {{ font-family: monospace; font-size: 16px; background: #f0f0f0; padding: 15px; border-radius: 5px; line-height: 1.5; }}
+            </style>
+        </head>
+        <body>
+        
         <h1>Project 5: Reinforcement Learning with Human Feedback</h1>
-        <h2>Mouse Environment Test [SUCCESS]</h2>
+        <h2>Environment & Database Setup Complete!</h2>
         
-        <p><strong>Using your uploaded mouse.py file!</strong></p>
-        
-        <h3>Environment &amp; Database Setup Successful!</h3>
-        
-        <div style="background: #e6ffe6; padding: 15px; border-radius: 5px; border-left: 4px solid green; margin: 20px 0;">
-            <h4>Database Status:</h4>
+        <div class="status-box">
+            <h4>System Status:</h4>
             <ul>
-                <li><strong>Trajectories:</strong> {trajectory_count} stored</li>
-                <li><strong>Human Feedback:</strong> {feedback_count} entries</li>
-                <li><strong>Policy Models:</strong> {policy_count} saved</li>
-                <li><strong>Training Sessions:</strong> {session_count} recorded</li>
+                <li><strong>Trajectories Recorded:</strong> {trajectory_count}</li>
+                <li><strong>Human Feedback Entries:</strong> {feedback_count}</li>
+                <li><strong>Policy Models Saved:</strong> {policy_count}</li>
+                <li><strong>Training Sessions:</strong> {session_count}</li>
             </ul>
         </div>
         
+        <h3>Game Environment</h3>
         <h4>Legend:</h4>
         <ul>
-            <li><strong>M</strong> = Mouse (player)</li>
-            <li><strong>C</strong> = Regular Cheese (+10 reward)</li>
-            <li><strong>O</strong> = Organic Cheese (+10 reward, but we want to avoid it via RLHF)</li>
+            <li><strong>M</strong> = Mouse (agent)</li>
+            <li><strong>C</strong> = Regular Cheese (+10 reward) - Good to collect</li>
+            <li><strong>O</strong> = Organic Cheese (+10 reward) - Avoid via RLHF training</li>
             <li><strong>T</strong> = Trap (-50 reward)</li>
             <li><strong>#</strong> = Wall (impassable)</li>
             <li><strong>.</strong> = Empty space (-0.2 reward per step)</li>
         </ul>
         
-        <h4>Random Generated Grid:</h4>
-        <pre style="font-family: monospace; font-size: 16px; background: #f0f0f0; padding: 15px; border-radius: 5px; line-height: 1.5;">
+        <h4>Sample Grid:</h4>
+        <pre>
         """
         
         for row in grid_display:
@@ -79,39 +102,34 @@ def project5_landing(request):
         html_content += f"""
         </pre>
         
-        <h4>Environment Details:</h4>
-        <ul>
-            <li><strong>Mouse Position:</strong> {mouse_pos}</li>
-            <li><strong>Cheese Position:</strong> {cheese_pos}</li>
-            <li><strong>Organic Cheese Positions:</strong> {organic_cheese_positions}</li>
-            <li><strong>Test Move (right):</strong> New position {new_mouse_pos}, Reward: {reward}</li>
-        </ul>
-        
-        <h4>Available Actions:</h4>
-        <ul>
-        """
-        
-        for action in ACTIONS:
-            html_content += f"<li><strong>{action}</strong></li>"
-        
-        html_content += f"""
-        </ul>
-        
-        <div style="background: #fff8dc; padding: 15px; border-radius: 5px; border-left: 4px solid orange; margin: 20px 0;">
-            <h4>Next Steps:</h4>
-            <ul>
-                <li>[DONE] Database models set up and working</li>
-                <li>[TODO] Implement PolicyNetwork (CNN for processing grid states)</li>
-                <li>[TODO] Implement REINFORCE training algorithm</li>
-                <li>[TODO] Create human feedback collection interface</li>
-                <li>[TODO] Implement RLHF with Bradley-Terry preference model</li>
-            </ul>
+        <div class="action-box">
+            <h4>Training Actions:</h4>
+            <a href="/project5/train-baseline/" class="button btn-success">Step 1: Train Baseline Policy (REINFORCE)</a>
+            <a href="/project5/collect-feedback/" class="button btn-info">Step 2: Collect Human Feedback</a>
+            <a href="/project5/train-rlhf/" class="button btn-warning">Step 3: Train with RLHF</a>
         </div>
         
+        <div class="action-box">
+            <h4>Analysis Tools:</h4>
+            <a href="/project5/test/" class="button btn-primary">Test Environment</a>
+            <a href="/project5/test-models/" class="button btn-primary">Test Database</a>
+            <a href="/project5/view-trajectories/" class="button btn-info">View Trajectories</a>
+        </div>
+        
+        <h3>Project Goals</h3>
+        <ol>
+            <li><strong>Baseline Training:</strong> Train mouse to collect cheese using REINFORCE</li>
+            <li><strong>Human Feedback:</strong> Teach preference to avoid organic cheese</li>
+            <li><strong>RLHF:</strong> Use Bradley-Terry model to learn from preferences</li>
+            <li><strong>Comparison:</strong> Compare baseline vs RLHF-trained policies</li>
+        </ol>
+        
         <hr>
-        <a href="/home/" style="padding: 10px 20px; background-color: #4f7ecb; color: white; text-decoration: none; border-radius: 4px;">Back to Home</a>
-        <a href="/project5/test/" style="padding: 10px 20px; background-color: #6b8e23; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px;">Run Direct Test</a>
-        <a href="/project5/test-models/" style="padding: 10px 20px; background-color: #cd853f; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px;">Test Database</a>
+        <a href="/home/" class="button btn-primary">Back to Home</a>
+        <a href="/admin/" class="button btn-warning">Django Admin</a>
+        
+        </body>
+        </html>
         """
         
         return HttpResponse(html_content)
@@ -123,32 +141,428 @@ def project5_landing(request):
         <h1>Project 5: Environment Test</h1>
         <h2 style="color: red;">ERROR in Mouse Environment</h2>
         <p><strong>Error:</strong> {str(e)}</p>
-        <p><strong>Error Type:</strong> {type(e).__name__}</p>
         <details>
             <summary>Click for full error details</summary>
             <pre style='background: #ffe6e6; padding: 10px; border-radius: 5px;'>{error_details}</pre>
         </details>
-        <p><strong>Troubleshooting:</strong></p>
-        <ul>
-            <li>Make sure numpy is installed: <code>pip install numpy</code></li>
-            <li>Check that mouse.py is in the project5 directory</li>
-            <li>Run migrations: <code>python manage.py migrate</code></li>
-            <li>Restart the Django server</li>
-        </ul>
         <a href="/home/">Back to Home</a>
         """)
 
 
+@csrf_exempt
+def train_baseline(request):
+    """Train baseline policy using REINFORCE"""
+    
+    if request.method == 'POST':
+        try:
+            # Get training parameters
+            num_episodes = int(request.POST.get('episodes', 200))
+            learning_rate = float(request.POST.get('learning_rate', 0.001))
+            
+            # Initialize trainer
+            global trainer
+            trainer = ReinforceTrainer(learning_rate=learning_rate)
+            
+            # Train baseline policy
+            trajectories, session = trainer.train_policy(
+                num_episodes=num_episodes,
+                save_trajectories=True
+            )
+            
+            # Calculate statistics
+            rewards = [t['total_reward'] for t in trajectories]
+            avg_reward = np.mean(rewards)
+            avg_steps = np.mean([t['steps'] for t in trajectories])
+            cheese_rate = np.mean([t['cheese_collected'] for t in trajectories])
+            organic_rate = np.mean([t['organic_cheese_collected'] for t in trajectories])
+            
+            return HttpResponse(f"""
+            <h1>Baseline Training Complete!</h1>
+            <h3>Training Results:</h3>
+            <ul>
+                <li><strong>Episodes:</strong> {num_episodes}</li>
+                <li><strong>Average Reward:</strong> {avg_reward:.2f}</li>
+                <li><strong>Average Steps:</strong> {avg_steps:.1f}</li>
+                <li><strong>Cheese Collection Rate:</strong> {cheese_rate:.2f}</li>
+                <li><strong>Organic Cheese Rate:</strong> {organic_rate:.2f}</li>
+                <li><strong>Session ID:</strong> {session.session_id[:8]}...</li>
+            </ul>
+            <p>The baseline policy has been trained and saved. Now you can collect human feedback!</p>
+            <a href="/project5/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Back to Project 5</a>
+            <a href="/project5/collect-feedback/" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">Collect Feedback</a>
+            """)
+            
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return HttpResponse(f"""
+            <h2>Training Error:</h2>
+            <p>{str(e)}</p>
+            <details><summary>Full Error</summary><pre>{error_details}</pre></details>
+            <a href='/project5/'>Back</a>
+            """)
+    
+    # Show training form
+    return HttpResponse("""
+    <h1>Train Baseline Policy</h1>
+    <form method="post">
+        <h3>Training Parameters:</h3>
+        <p><label>Episodes: <input type="number" name="episodes" value="200" min="10" max="1000"></label></p>
+        <p><label>Learning Rate: <input type="number" name="learning_rate" value="0.001" step="0.0001" min="0.0001" max="0.1"></label></p>
+        <button type="submit" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px;">Start Training</button>
+    </form>
+    <p><em>This will train the mouse using REINFORCE algorithm. Training may take a few minutes...</em></p>
+    <a href="/project5/">Back to Project 5</a>
+    """)
+
+
+@csrf_exempt
+def collect_feedback(request):
+    """Interface for collecting human feedback on trajectory pairs"""
+    
+    if request.method == 'POST':
+        try:
+            # Process submitted feedback
+            trajectory_a_id = request.POST.get('trajectory_a_id')
+            trajectory_b_id = request.POST.get('trajectory_b_id')
+            preferred = request.POST.get('preferred')
+            confidence = int(request.POST.get('confidence', 3))
+            reason = request.POST.get('reason', '')
+            
+            # Save feedback
+            feedback = HumanFeedback.objects.create(
+                trajectory_a_id=trajectory_a_id,
+                trajectory_b_id=trajectory_b_id,
+                preferred_trajectory=preferred,
+                confidence_level=confidence,
+                feedback_reason=reason
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Feedback saved successfully!',
+                'feedback_id': str(feedback.id)
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # Get two random trajectories for comparison
+    trajectories = list(Trajectory.objects.all().order_by('?')[:2])
+    
+    if len(trajectories) < 2:
+        return HttpResponse("""
+        <h1>Need More Trajectories</h1>
+        <p>You need at least 2 trajectories to collect feedback. Please train the baseline policy first.</p>
+        <a href="/project5/train-baseline/">Train Baseline Policy</a>
+        <a href="/project5/">Back to Project 5</a>
+        """)
+    
+    traj_a, traj_b = trajectories[0], trajectories[1]
+    
+    # Get trajectory details
+    def get_trajectory_states(traj_id):
+        states = GameState.objects.filter(trajectory_id=traj_id).order_by('step_number')
+        return [state.get_grid() for state in states]
+    
+    def render_trajectory(traj, states):
+        symbols = {0: '.', 1: 'M', 2: 'C', 3: 'T', 4: '#', 5: 'O'}
+        
+        html = f"""
+        <div style="border: 2px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
+            <h4>Trajectory {traj.trajectory_id[:8]}...</h4>
+            <p><strong>Stats:</strong> Reward: {traj.total_reward:.1f}, Steps: {traj.total_steps}, 
+               Cheese: {traj.cheese_collected}, Organic: {traj.organic_cheese_collected}, 
+               Traps: {traj.traps_hit}</p>
+            <p><strong>End Reason:</strong> {traj.end_reason}</p>
+            
+            <div style="font-family: monospace; font-size: 12px;">
+        """
+        
+        # Show first few states
+        for i, state in enumerate(states[:5]):
+            html += f"<p><strong>Step {i}:</strong></p><pre>"
+            for row in state:
+                html += ' '.join(symbols[cell] for cell in row) + '\n'
+            html += "</pre>"
+            if i < len(states) - 1:
+                html += "<br>"
+        
+        if len(states) > 5:
+            html += f"<p><em>... and {len(states) - 5} more steps</em></p>"
+        
+        html += "</div></div>"
+        return html
+    
+    states_a = get_trajectory_states(traj_a.trajectory_id)
+    states_b = get_trajectory_states(traj_b.trajectory_id)
+    
+    feedback_count = HumanFeedback.objects.count()
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Human Feedback Collection</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            .trajectory {{ display: inline-block; width: 45%; vertical-align: top; }}
+            .button {{ padding: 10px 20px; margin: 5px; color: white; text-decoration: none; border: none; border-radius: 4px; cursor: pointer; }}
+            .btn-success {{ background-color: #28a745; }}
+            .btn-primary {{ background-color: #007bff; }}
+            .feedback-form {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+        </style>
+        <script>
+            function submitFeedback(preferred) {{
+                const form = document.getElementById('feedbackForm');
+                const formData = new FormData(form);
+                formData.append('preferred', preferred);
+                
+                fetch('/project5/collect-feedback/', {{
+                    method: 'POST',
+                    body: formData
+                }})
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.success) {{
+                        alert('Feedback saved! Loading next pair...');
+                        location.reload();
+                    }} else {{
+                        alert('Error: ' + data.error);
+                    }}
+                }})
+                .catch(error => {{
+                    console.error('Error:', error);
+                    alert('Network error occurred');
+                }});
+            }}
+        </script>
+    </head>
+    <body>
+    
+    <h1>Human Feedback Collection</h1>
+    <p><strong>Feedback Collected:</strong> {feedback_count} pairs</p>
+    <p><em>Compare these two trajectories and select which one you prefer. Consider avoiding organic cheese (O) as the goal.</em></p>
+    
+    <div style="display: flex; gap: 20px;">
+        <div class="trajectory">
+            <h3>Trajectory A</h3>
+            {render_trajectory(traj_a, states_a)}
+        </div>
+        
+        <div class="trajectory">
+            <h3>Trajectory B</h3>
+            {render_trajectory(traj_b, states_b)}
+        </div>
+    </div>
+    
+    <div class="feedback-form">
+        <form id="feedbackForm">
+            <input type="hidden" name="trajectory_a_id" value="{traj_a.trajectory_id}">
+            <input type="hidden" name="trajectory_b_id" value="{traj_b.trajectory_id}">
+            
+            <h3>Which trajectory do you prefer?</h3>
+            <button type="button" onclick="submitFeedback('A')" class="button btn-success">Prefer Trajectory A</button>
+            <button type="button" onclick="submitFeedback('B')" class="button btn-success">Prefer Trajectory B</button>
+            
+            <p><label>Confidence (1-5): 
+                <select name="confidence">
+                    <option value="1">1 - Not sure</option>
+                    <option value="2">2 - Slightly confident</option>
+                    <option value="3" selected>3 - Moderately confident</option>
+                    <option value="4">4 - Very confident</option>
+                    <option value="5">5 - Extremely confident</option>
+                </select>
+            </label></p>
+            
+            <p><label>Reason (optional):<br>
+                <textarea name="reason" rows="3" cols="60" placeholder="Why do you prefer this trajectory? Consider cheese collection, avoiding organic cheese, trap avoidance, etc."></textarea>
+            </label></p>
+        </form>
+    </div>
+    
+    <p><strong>Guidelines:</strong></p>
+    <ul>
+        <li>Prefer trajectories that collect regular cheese (C) over organic cheese (O)</li>
+        <li>Prefer trajectories that avoid traps (T)</li>
+        <li>Prefer efficient paths (fewer steps)</li>
+        <li>The goal is to train the mouse to avoid organic cheese via human feedback</li>
+    </ul>
+    
+    <hr>
+    <a href="/project5/" class="button btn-primary">Back to Project 5</a>
+    <a href="/project5/train-rlhf/" class="button btn-primary">Train with RLHF</a>
+    
+    </body>
+    </html>
+    """
+    
+    return HttpResponse(html_content)
+
+
+@csrf_exempt
+def train_rlhf(request):
+    """Train policy using RLHF with collected human feedback"""
+    
+    if request.method == 'POST':
+        try:
+            # Get training parameters
+            num_episodes = int(request.POST.get('episodes', 100))
+            reward_epochs = int(request.POST.get('reward_epochs', 50))
+            
+            # Get human feedback data
+            feedback_entries = HumanFeedback.objects.all()
+            
+            if len(feedback_entries) < 5:
+                return HttpResponse(f"""
+                <h2>Insufficient Feedback</h2>
+                <p>You need at least 5 feedback entries to train RLHF. Current: {len(feedback_entries)}</p>
+                <a href="/project5/collect-feedback/">Collect More Feedback</a>
+                """)
+            
+            # Prepare feedback data for training
+            feedback_data = []
+            for fb in feedback_entries:
+                # Get trajectory states
+                states_a = [gs.get_grid() for gs in GameState.objects.filter(
+                    trajectory_id=fb.trajectory_a_id).order_by('step_number')]
+                states_b = [gs.get_grid() for gs in GameState.objects.filter(
+                    trajectory_id=fb.trajectory_b_id).order_by('step_number')]
+                
+                feedback_data.append({
+                    'trajectory_a_states': states_a,
+                    'trajectory_b_states': states_b,
+                    'preference': 1 if fb.preferred_trajectory == 'A' else 0
+                })
+            
+            # Enable RLHF mode
+            global trainer
+            trainer.enable_rlhf()
+            
+            # Train reward model
+            trainer.train_reward_model(feedback_data, num_epochs=reward_epochs)
+            
+            # Train policy with learned rewards
+            trajectories, session = trainer.train_policy(
+                num_episodes=num_episodes,
+                save_trajectories=True
+            )
+            
+            # Calculate statistics
+            rewards = [t['total_reward'] for t in trajectories]
+            avg_reward = np.mean(rewards)
+            avg_steps = np.mean([t['steps'] for t in trajectories])
+            cheese_rate = np.mean([t['cheese_collected'] for t in trajectories])
+            organic_rate = np.mean([t['organic_cheese_collected'] for t in trajectories])
+            
+            return HttpResponse(f"""
+            <h1>RLHF Training Complete!</h1>
+            <h3>Training Results:</h3>
+            <ul>
+                <li><strong>Feedback Used:</strong> {len(feedback_data)} pairs</li>
+                <li><strong>Reward Training Epochs:</strong> {reward_epochs}</li>
+                <li><strong>Policy Episodes:</strong> {num_episodes}</li>
+                <li><strong>Average Reward:</strong> {avg_reward:.2f}</li>
+                <li><strong>Average Steps:</strong> {avg_steps:.1f}</li>
+                <li><strong>Cheese Collection Rate:</strong> {cheese_rate:.2f}</li>
+                <li><strong>Organic Cheese Rate:</strong> {organic_rate:.2f}</li>
+                <li><strong>Session ID:</strong> {session.session_id[:8]}...</li>
+            </ul>
+            <p>The RLHF policy should now prefer regular cheese over organic cheese based on human feedback!</p>
+            <a href="/project5/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Back to Project 5</a>
+            """)
+            
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return HttpResponse(f"""
+            <h2>RLHF Training Error:</h2>
+            <p>{str(e)}</p>
+            <details><summary>Full Error</summary><pre>{error_details}</pre></details>
+            <a href='/project5/'>Back</a>
+            """)
+    
+    # Show RLHF training form
+    feedback_count = HumanFeedback.objects.count()
+    
+    return HttpResponse(f"""
+    <h1>Train with Human Feedback (RLHF)</h1>
+    <p><strong>Available Feedback:</strong> {feedback_count} pairs</p>
+    
+    <form method="post">
+        <h3>RLHF Training Parameters:</h3>
+        <p><label>Reward Model Epochs: <input type="number" name="reward_epochs" value="50" min="10" max="200"></label></p>
+        <p><label>Policy Episodes: <input type="number" name="episodes" value="100" min="10" max="500"></label></p>
+        <button type="submit" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 4px;">Start RLHF Training</button>
+    </form>
+    
+    <h3>RLHF Process:</h3>
+    <ol>
+        <li><strong>Bradley-Terry Model:</strong> Learn reward function from human preferences</li>
+        <li><strong>Policy Update:</strong> Train policy using learned rewards</li>
+        <li><strong>KL Penalty:</strong> Keep policy close to baseline to prevent reward hacking</li>
+    </ol>
+    
+    <p><em>This will use the Bradley-Terry model to learn rewards from human feedback, then retrain the policy.</em></p>
+    <a href="/project5/">Back to Project 5</a>
+    <a href="/project5/collect-feedback/">Collect More Feedback</a>
+    """)
+
+
+def view_trajectories(request):
+    """View recent trajectories and their statistics"""
+    
+    trajectories = Trajectory.objects.all().order_by('-created_at')[:10]
+    
+    if not trajectories:
+        return HttpResponse("""
+        <h1>No Trajectories Found</h1>
+        <p>Train a policy first to generate trajectories.</p>
+        <a href="/project5/train-baseline/">Train Baseline</a>
+        <a href="/project5/">Back to Project 5</a>
+        """)
+    
+    html_content = """
+    <h1>Recent Trajectories</h1>
+    <table border="1" style="border-collapse: collapse; width: 100%;">
+        <tr style="background: #f0f0f0;">
+            <th>ID</th><th>Reward</th><th>Steps</th><th>Cheese</th><th>Organic</th><th>Traps</th><th>End Reason</th><th>Policy</th><th>Created</th>
+        </tr>
+    """
+    
+    for traj in trajectories:
+        html_content += f"""
+        <tr>
+            <td>{traj.trajectory_id[:8]}...</td>
+            <td>{traj.total_reward:.1f}</td>
+            <td>{traj.total_steps}</td>
+            <td>{traj.cheese_collected}</td>
+            <td>{traj.organic_cheese_collected}</td>
+            <td>{traj.traps_hit}</td>
+            <td>{traj.end_reason}</td>
+            <td>{traj.policy_version}</td>
+            <td>{traj.created_at.strftime('%m/%d %H:%M')}</td>
+        </tr>
+        """
+    
+    html_content += """
+    </table>
+    <br>
+    <a href="/project5/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Back to Project 5</a>
+    """
+    
+    return HttpResponse(html_content)
+
+
+# Keep existing functions from original views.py
 def test_environment_direct(request):
     """Direct test of the environment (for debugging)"""
     try:
         import io
         import sys
         
-        # Test the functions directly
         grid, mouse_pos, cheese_pos, organic_cheese_positions = initialize_grid_with_cheese_types()
         
-        # Capture print output
         old_stdout = sys.stdout
         sys.stdout = buffer = io.StringIO()
         
@@ -159,13 +573,11 @@ def test_environment_direct(request):
         print(f"Cheese position: {cheese_pos}")
         print(f"Organic cheese positions: {organic_cheese_positions}")
         
-        # Test movement
         print("\nTesting movement 'right':")
         test_grid = grid.copy()
         test_grid = move('right', test_grid)
         print_grid_with_cheese_types(test_grid)
         
-        # Test reward
         new_mouse_pos = tuple(np.argwhere(test_grid == 1)[0])
         reward = get_reward(new_mouse_pos, test_grid)
         print(f"New mouse position: {new_mouse_pos}")
@@ -192,10 +604,8 @@ def test_environment_direct(request):
 def test_models(request):
     """Test database models by creating and retrieving sample data"""
     try:
-        # Create a test trajectory
         trajectory_id = str(uuid.uuid4())
         
-        # Create sample trajectory
         trajectory = Trajectory.objects.create(
             trajectory_id=trajectory_id,
             total_reward=15.6,
@@ -208,7 +618,6 @@ def test_models(request):
             policy_version="test_v1"
         )
         
-        # Create sample game states
         grid, mouse_pos, cheese_pos, organic_cheese_positions = initialize_grid_with_cheese_types()
         
         for step in range(3):
@@ -222,7 +631,6 @@ def test_models(request):
             game_state.set_grid(grid)
             game_state.save()
         
-        # Create sample feedback
         feedback = HumanFeedback.objects.create(
             trajectory_a_id=trajectory_id,
             trajectory_b_id="test_trajectory_b",
@@ -231,12 +639,10 @@ def test_models(request):
             confidence_level=4
         )
         
-        # Get statistics
         trajectory_count = Trajectory.objects.count()
         game_state_count = GameState.objects.count()
         feedback_count = HumanFeedback.objects.count()
         
-        # Get the created objects
         recent_trajectories = Trajectory.objects.all()[:5]
         recent_feedback = HumanFeedback.objects.all()[:5]
         
