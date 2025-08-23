@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "project2",
     "project3",
     "project4",
+    "project5",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
