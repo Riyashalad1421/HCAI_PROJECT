@@ -374,6 +374,44 @@
         color: white;
         transform: translateY(-1px);
     }
+
+    /* --- Dark theme select / option visibility fixes --- */
+    select,
+    input[type="number"] {
+    color: var(--text-primary);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    }
+
+    select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    /* Native dropdown list items (options) – make them visible on dark themes */
+    select option {
+    color: var(--text-primary);        /* readable text */
+    background: var(--dark-light);     /* dark background for the list */
+    }
+
+    /* Optional: placeholder/disabled option style */
+    select option[disabled],
+    select option[value=""] {
+    color: var(--text-muted);
+    }
+
+    /* Ensure number input spinners are visible */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: auto;
+    margin: 0;
+    }
+    input[type="number"] {
+    -moz-appearance: textfield; /* Firefox uses textfield by default; keep steppers behavior consistent */
+    }
+
+
     
     /* Responsive Design */
     @media (max-width: 768px) {
@@ -628,12 +666,134 @@
             </p>
         </div>
     </div>
+    <!-- Counterfactual Explanations (all controls in one place) -->
+    <div class="correlation-section" id="cf-panel">
+    <div class="title-container">
+        <h2 class="gradient-text"><i class="fas fa-magic"></i> Counterfactual Explanations</h2>
+    </div>
+
+    <div class="lambda-control" style="margin-top: var(--space-lg);">
+        <!-- Core controls -->
+        <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">Pick instance (row index)</div>
+            <input id="cf-index" type="number" min="0" step="1" value="0" class="form-control" />
+            <small class="text-muted">0 = first row</small>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">Target label</div>
+            <select id="cf-target" class="form-control">
+            {% for cls in target_names %}
+                <option value="{{ cls }}">{{ cls }}</option>
+            {% endfor %}
+            </select>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">Model</div>
+            <select id="cf-model" class="form-control">
+            <option value="logistic">Logistic Regression</option>
+            <option value="tree">Decision Tree</option>
+            </select>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">Sampling (N) / Top-k</div>
+            <div style="display:flex; gap: var(--space-sm);">
+            <input id="cf-N" type="number" min="100" step="100" value="2000" class="input" style="max-width:120px;">
+            <input id="cf-k" type="number" min="1" step="1" value="5" class="input" style="max-width:80px;">
+            </div>
+        </div>
+        </div>
+
+        <!-- Actionability constraints (in the same panel) -->
+        <div class="title-container" style="margin-top: var(--space-lg);">
+        <h3 class="gradient-text"><i class="fas fa-user-shield"></i> Actionability Constraints</h3>
+        </div>
+
+        <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">Immutable features (cannot change)</div>
+            <div id="cf-immutables" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+            {% for f in features %}
+                <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" value="{{ f }}"> <span>{{ f }}</span>
+                </label>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">Only increase</div>
+            <div id="cf-only-inc" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+            {% for f in features %}
+                <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" value="{{ f }}"> <span>{{ f }}</span>
+                </label>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">Only decrease</div>
+            <div id="cf-only-dec" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+            {% for f in features %}
+                <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" value="{{ f }}"> <span>{{ f }}</span>
+                </label>
+            {% endfor %}
+            </div>
+        </div>
+        </div>
+
+        <!-- (Optional) Plausibility & diversity toggles — still in this one panel -->
+        <div class="info-grid" style="margin-top: var(--space-md);">
+        <div class="info-item">
+            <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="cf-plaus" checked> Enforce plausibility (kNN density)
+            </label>
+            <div class="info-label" style="margin-top:8px;">Keep densest quantile</div>
+            <input id="cf-dens-q" type="number" min="0" max="1" step="0.05" value="0.7" class="form-control" />
+        </div>
+        <div class="info-item">
+            <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="cf-diverse" checked> Enforce diversity (min MAD-L1)
+            </label>
+            <div class="info-label" style="margin-top:8px;">Min MAD-L1 between CFs</div>
+            <input id="cf-div-min" type="number" min="0" step="0.05" value="0.2" class="form-control" />
+        </div>
+        </div>
+
+        <!-- Single button at the very bottom -->
+        <div style="margin-top: var(--space-lg); text-align:center;">
+        <button id="cf-run" class="btn btn-primary">
+            <i class="fas fa-play"></i> Generate Counterfactuals
+        </button>
+        </div>
+
+        <div class="loading-indicator" id="cf-loading" style="margin-top: var(--space-md);">
+        <span class="loading-spinner-custom"></span> Searching locally for counterfactuals...
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="viz-container" style="overflow:auto; margin-top: var(--space-lg);">
+        <h4 class="viz-title"><i class="fas fa-table"></i> Top Counterfactuals (MAD-weighted L1)</h4>
+        <div id="cf-results" style="width:100%; overflow:auto;">
+        <div class="text-center" style="color:var(--text-secondary);">No counterfactuals yet.</div>
+        </div>
+    </div>
+    </div>
+
+
+
 
     {% endif %}
 </div>
 {% endblock %}
 
-{% block script %}
+{% block extra_js %}
 <script>
     // Tab switching functionality
     function showTab(tabId, button) {
@@ -666,6 +826,22 @@
         const maxDepthDisplay = document.getElementById('max-depth-display');
         const cValueDisplay = document.getElementById('c-value-display');
         const loadingIndicator = document.getElementById('loading-indicator');
+        
+
+        const cfBtn = document.getElementById('cf-run');
+        const cfIndex = document.getElementById('cf-index');
+        const cfTarget = document.getElementById('cf-target');
+        const cfModel = document.getElementById('cf-model');
+        const cfN = document.getElementById('cf-N');
+        const cfK = document.getElementById('cf-k');
+        const cfLoading = document.getElementById('cf-loading');
+        const cfResults = document.getElementById('cf-results');
+
+        // Prevent negative values & NaN
+        cfIndex.addEventListener('input', () => {
+        const v = parseInt(cfIndex.value, 10);
+        if (Number.isNaN(v) || v < 0) cfIndex.value = 0;
+        });
         
         // Debouncing variables
         let updateTimeout;
@@ -735,6 +911,81 @@
                 showUpdateError('Failed to update models. Please try again.');
             });
         }
+
+        function renderCFTable(payload) {
+            if (!payload || !payload.counterfactuals || payload.counterfactuals.length === 0) {
+            cfResults.innerHTML = '<div class="text-center" style="color:var(--text-secondary);">No counterfactuals found. Try increasing N or choosing a different target label.</div>';
+            return;
+            }
+            const cols = payload.feature_names || Object.keys(payload.counterfactuals[0].features);
+            let thead = '<thead><tr>' + cols.map(c => `<th style="white-space:nowrap; padding:6px 10px; text-align:left;">${c}</th>`).join('') +
+            `<th style="padding:6px 10px; text-align:left;">MAD-L1</th><th style="padding:6px 10px; text-align:left;">P(target)</th></tr></thead>`;
+            let rows = payload.counterfactuals.map(r => {
+            const featCells = cols.map(c => `<td style="padding:6px 10px;">${(+r.features[c]).toFixed(3)}</td>`).join('');
+            const dist = (r.mad_weighted_l1 != null) ? r.mad_weighted_l1.toFixed(3) : '';
+            const prob = (r.target_prob == null) ? '' : r.target_prob.toFixed(3);
+            return `<tr>${featCells}<td style="padding:6px 10px;">${dist}</td><td style="padding:6px 10px;">${prob}</td></tr>`;
+            }).join('');
+            cfResults.innerHTML = `<div style="overflow:auto;"><table style="width:100%; border-collapse:collapse;">
+            ${thead}<tbody>${rows}</tbody></table></div>`;
+        }
+
+                // Helper: collect checked values from a checkbox grid by container id
+        function getCheckedValues(containerId) {
+            return Array.from(
+                document.querySelectorAll('#' + containerId + ' input[type="checkbox"]:checked')
+            ).map(el => el.value);
+        }
+
+
+        cfBtn.addEventListener('click', () => {
+            cfLoading.classList.add('active');
+            cfResults.innerHTML = '';
+            fetch('{% url "project3:counterfactuals" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+            lambda: parseFloat(lambdaSlider.value || '{{ lambda_value }}'),
+            instance_index: parseInt(cfIndex.value || '0'),
+            target_label: cfTarget.value,
+            model_type: cfModel.value,
+            N: parseInt(cfN.value || '2000'),
+            k: parseInt(cfK.value || '5'),
+
+            // actionability
+            immutables: getCheckedValues('cf-immutables'),
+            only_increase: getCheckedValues('cf-only-inc'),
+            only_decrease: getCheckedValues('cf-only-dec'),
+
+            // plausibility & diversity (optional)
+            enforce_plausibility: document.getElementById('cf-plaus')?.checked || false,
+            density_quantile: parseFloat(document.getElementById('cf-dens-q')?.value || '0.7'),
+            enforce_diversity: document.getElementById('cf-diverse')?.checked || false,
+            diversity_min_l1: parseFloat(document.getElementById('cf-div-min')?.value || '0.2')
+            })
+
+
+            })
+            .then(async r => {
+                const text = await r.text();
+                if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
+                return JSON.parse(text);
+            })
+            .then(payload => {
+                renderCFTable(payload);
+                cfLoading.classList.remove('active');
+            })
+            .catch(err => {
+                console.error('CF error:', err.message);
+                cfLoading.classList.remove('active');
+                cfResults.innerHTML = `<div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i> ${err.message}
+                </div>`;
+            });
+        });
         
         // Success feedback
         function showUpdateSuccess() {
@@ -831,4 +1082,4 @@
         document.body.appendChild(shortcuts);
     });
 </script>
-{% endblock script %}
+{% endblock extra_js %}

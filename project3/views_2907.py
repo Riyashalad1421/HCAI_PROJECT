@@ -402,148 +402,57 @@ def plot_logistic_coefficients(model, feature_names):
     return base64.b64encode(image_png).decode('utf-8')
 
 
-def _probas_to_list(clf, X1, target_names):
-    """Return [{'label': name, 'p': prob}, ...] using the model's class *codes* order."""
-    if not hasattr(clf, "predict_proba"):
-        return []
-    p = clf.predict_proba(X1)[0]
-    codes = list(getattr(clf, "classes_", range(len(p))))
-    names = [str(target_names[int(c)]) for c in codes]
-    return [{"label": names[i], "p": float(p[i])} for i in range(len(p))]
+def _fit_models_for_lambda(lambda_value, X_train, y_train, feature_names, target_names):
+    """Train both models for a given lambda (shared with counterfactuals)."""
+    # Decision Tree
+    max_depth = max(2, min(10, int(10 - lambda_value * 9)))
+    tree_model = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
+    tree_model.fit(X_train, y_train)
+
+    # Logistic Regression (L1 sparsity)
+    C_value = max(0.001, 1.0 / lambda_value)
+    logistic_model = LogisticRegression(
+        penalty='l1',
+        solver='saga',
+        C=C_value,
+        max_iter=5000,
+        random_state=42
+    )
+    logistic_model.fit(X_train, y_train)
+
+    return tree_model, logistic_model, max_depth, C_value
+
+
+def _mad_per_feature(X_raw):
+    """Median Absolute Deviation per feature (in original/unscaled space)."""
+    med = np.median(X_raw, axis=0)
+    mad = np.median(np.abs(X_raw - med), axis=0)
+    # guard against zeros
+    mad[mad == 0] = np.maximum(
+        1e-6, np.std(X_raw[:, mad == 0], axis=0, ddof=1))
+    return mad
+
+
+def _mad_weighted_l1(x, c, mad):
+    """∑ |c_j - x_j| / MAD_j in original (unscaled) space."""
+    return float(np.sum(np.abs(c - x) / mad))
+
+
+def _clip_to_data_range(cands, mins, maxs):
+    return np.clip(cands, mins, maxs)
 
 
 def _model_code_maps(model, target_names):
     """
-    Returns (codes, name_by_code, code_by_name) using the model's class codes.
-    Assumes target_names is indexed by the same integer codes used to build y.
+    Returns (codes, name_by_code, code_by_name) where:
+      - codes: list of class codes in model.classes_ order
+      - name_by_code: {code -> human-readable name from target_names}
+      - code_by_name: {human-readable name -> code}
     """
     codes = list(getattr(model, "classes_", []))
     name_by_code = {int(c): str(target_names[int(c)]) for c in codes}
     code_by_name = {v: k for k, v in name_by_code.items()}
     return codes, name_by_code, code_by_name
-
-
-def _tree_decision_path(model, scaler, x_orig, feature_names):
-    """
-    Deterministic path that x takes through the tree.
-    Each step shows feature, operator, threshold (scaled & original).
-    """
-    tree = model.tree_
-    feature = tree.feature
-    threshold = tree.threshold
-    left = tree.children_left
-    right = tree.children_right
-
-    x_scaled = scaler.transform([x_orig])[0]
-    path = []
-    node = 0
-    while left[node] != _tree.TREE_LEAF:  # not a leaf
-        f = feature[node]
-        thr = threshold[node]
-        thr_orig = thr * scaler.scale_[f] + scaler.mean_[f]
-        go_left = x_scaled[f] <= thr
-        path.append({
-            "feature": str(feature_names[f]),
-            "op": "<=" if go_left else ">",
-            "threshold_scaled": float(thr),
-            "threshold_orig": float(thr_orig),
-            "satisfied": True
-        })
-        node = left[node] if go_left else right[node]
-    return path
-
-
-def _tree_minimal_recourse(model, scaler, x_orig, feature_names, target_id):
-    """
-    Minimal L1 (in ORIGINAL units) change that sends x to a leaf whose
-    majority class index == target_id in model.classes_.
-    Returns {'cost_L1': float, 'steps': [{feature, from, to, delta}, ...]} or None.
-    """
-    tree = model.tree_
-    feature = tree.feature
-    threshold = tree.threshold
-    left = tree.children_left
-    right = tree.children_right
-    value = tree.value
-
-    # collect all target-class leaves with their (node, dir) path
-    leaves = []
-
-    def walk(node, path):
-        if left[node] == _tree.TREE_LEAF:
-            if value[node][0].argmax() == target_id:
-                leaves.append(path.copy())
-            return
-        path.append((node, 'L'))
-        walk(left[node], path)
-        path.pop()
-        path.append((node, 'R'))
-        walk(right[node], path)
-        path.pop()
-    walk(0, [])
-    if not leaves:
-        return None
-
-    x_scaled = scaler.transform([x_orig])[0]
-
-    def plan_for(path):
-        # deltas in scaled units needed to satisfy every split along the path
-        deltas = {}
-        for node, dir_ in path:
-            f = feature[node]
-            thr = threshold[node]
-            if f < 0:
-                continue
-            if dir_ == 'L' and not (x_scaled[f] <= thr):
-                deltas[f] = min(deltas.get(f, float('inf')),
-                                thr - x_scaled[f] - 1e-6)
-            if dir_ == 'R' and not (x_scaled[f] > thr):
-                deltas[f] = max(deltas.get(f, float('-inf')),
-                                thr - x_scaled[f] + 1e-6)
-        # convert to ORIGINAL units
-        delta_scaled = np.zeros_like(x_scaled)
-        for j, d in deltas.items():
-            delta_scaled[j] = d
-        delta_orig = delta_scaled * scaler.scale_
-        cost = float(np.sum(np.abs(delta_orig)))
-        steps = []
-        for j, d in enumerate(delta_orig):
-            if abs(d) > 1e-9:
-                steps.append({
-                    "feature": str(feature_names[j]),
-                    "from": float(x_orig[j]),
-                    "to": float(x_orig[j] + d),
-                    "delta": float(d)
-                })
-        return cost, steps
-
-    plans = [plan_for(p) for p in leaves]
-    if not plans:
-        return None
-    cost, steps = sorted(plans, key=lambda t: t[0])[0]
-    return {"cost_L1": cost, "steps": steps}
-
-
-def _logistic_top_contributors(log_model, scaler, x_orig, feature_names, top_k=5):
-    """
-    Per-instance contributions for the predicted class: w_cj * x_scaled_j.
-    """
-    x_scaled = scaler.transform([x_orig])[0]
-    pred_code = int(log_model.predict([x_scaled])[0])
-    weights = log_model.coef_[pred_code]  # (n_features,)
-    contrib = weights * x_scaled
-    order = np.argsort(np.abs(contrib))[::-1][:top_k]
-    return [{
-        "feature": str(feature_names[i]),
-        "contribution": float(contrib[i]),
-        "abs_contribution": float(abs(contrib[i])),
-        "weight": float(weights[i]),
-        "x_scaled": float(x_scaled[i])
-    } for i in order]
-
-# =========================
-# ===== Main Endpoint =====
-# =========================
 
 
 @csrf_exempt
@@ -621,12 +530,11 @@ def counterfactuals(request):
         x_orig = X_raw[instance_index].astype(float)
         X1_scaled = scaler.transform(x_orig.reshape(1, -1))
 
-        # --- Class mapping: use model class *codes* (critical) ---
+        # --- Class mapping: use model class CODES (critical) ---
         codes, name_by_code, code_by_name = _model_code_maps(
             model, target_names)
         if target_label not in code_by_name:
             return JsonResponse({"error": f"target_label must be one of {list(code_by_name.keys())}"}, status=400)
-        # this is what predict(...) returns
         target_code = code_by_name[target_label]
 
         # --- Instance panel data ---
@@ -655,11 +563,8 @@ def counterfactuals(request):
         }
 
         # --- Deterministic tree recourse (to target label) ---
-        # _tree_minimal_recourse expects the *index* into tree_model.classes_
-        target_pos_tree = list(tree_model.classes_).index(target_code)
         tree_recourse = _tree_minimal_recourse(
-            tree_model, scaler, x_orig, feature_names, target_id=target_pos_tree
-        )
+            tree_model, scaler, x_orig, feature_names, target_id=target_code)
 
         # --- Local sampling with auto-escalation if zero matches ---
         mins = X_train_raw.min(axis=0)
@@ -673,6 +578,7 @@ def counterfactuals(request):
         Ns = [N, max(N, 6000), max(N, 12000)]
 
         selected = None
+        tried = []
         for s, n_try in zip(scales, Ns):
             noise = rng.normal(0.0, s * mad, size=(n_try, X_raw.shape[1]))
             # actionability constraints
@@ -689,6 +595,7 @@ def counterfactuals(request):
             candidates_orig = np.clip(x_orig + noise, mins, maxs)
             preds = model.predict(scaler.transform(candidates_orig))
             mask = (preds == target_code)
+            tried.append(int(np.sum(mask)))
             if np.any(mask):
                 selected = candidates_orig[mask]
                 break
@@ -702,11 +609,9 @@ def counterfactuals(request):
                 "found": 0, "counterfactuals": [],
                 "feature_names": list(map(str, feature_names)),
                 "instance_summary": instance_summary,
-                "tree_action_plan": tree_recourse
+                "tree_action_plan": tree_recourse,
+                "debug": {"matched_per_scale": tried, "scales": scales, "Ns": Ns}
             })
-
-        # Save pre-plausibility pool for later relaxation
-        selected0 = selected.copy()
 
         # --- Plausibility (optional kNN density on TRAIN original space) ---
         if enforce_plaus:
@@ -724,16 +629,14 @@ def counterfactuals(request):
                     "found": 0, "counterfactuals": [],
                     "feature_names": list(map(str, feature_names)),
                     "instance_summary": instance_summary,
-                    "tree_action_plan": tree_recourse
+                    "tree_action_plan": tree_recourse,
+                    "debug": {"note": "All filtered by plausibility"}
                 })
 
         # --- Rank by MAD-L1 and (optional) enforce diversity ---
         dists_cf = np.sum(np.abs(selected - x_orig) / mad, axis=1)
         order = np.argsort(dists_cf)
 
-        # First pass
-        chosen = np.array([])
-        chosen_d = np.array([])
         if enforce_div:
             picked, picked_idx = [], []
             for idx in order:
@@ -743,63 +646,12 @@ def counterfactuals(request):
                     picked_idx.append(idx)
                 if len(picked) >= k:
                     break
-            if picked:
-                chosen = np.vstack(picked)
-                chosen_d = dists_cf[picked_idx]
+            chosen = np.array(picked)
+            chosen_d = dists_cf[picked_idx] if picked_idx else np.array([])
         else:
             top = order[:k]
-            if top.size > 0:
-                chosen = selected[top]
-                chosen_d = dists_cf[top]
-
-        # --- Auto-relax diversity if too few ---
-        if enforce_div and (chosen.size == 0 or len(chosen) < k):
-            for factor in (0.8, 0.6, 0.4):
-                thr = div_min_l1 * factor
-                picked, picked_idx = [], []
-                for idx in order:
-                    cand = selected[idx]
-                    if all(np.sum(np.abs(cand - p) / mad) >= thr for p in picked):
-                        picked.append(cand)
-                        picked_idx.append(idx)
-                    if len(picked) >= k:
-                        break
-                if picked:
-                    chosen = np.vstack(picked)
-                    chosen_d = dists_cf[picked_idx]
-                    break
-
-        # --- Auto-relax plausibility if still too few ---
-        if (chosen.size == 0 or len(chosen) < k) and enforce_plaus:
-            nbrs = NearestNeighbors(n_neighbors=10).fit(X_train_raw)
-            d_all, _ = nbrs.kneighbors(selected0)   # use pre-plausibility pool
-            avg_all = d_all.mean(axis=1)
-            for q in (max(dens_q, 0.7), 0.85, 0.90, 0.95, 1.00):
-                keep2 = avg_all < np.quantile(avg_all, q)
-                selected2 = selected0[keep2]
-                if selected2.shape[0] == 0:
-                    continue
-                d2 = np.sum(np.abs(selected2 - x_orig) / mad, axis=1)
-                ord2 = np.argsort(d2)
-                if enforce_div:
-                    picked, picked_idx = [], []
-                    for idx in ord2:
-                        cand = selected2[idx]
-                        if all(np.sum(np.abs(cand - p) / mad) >= div_min_l1 for p in picked):
-                            picked.append(cand)
-                            picked_idx.append(idx)
-                        if len(picked) >= k:
-                            break
-                    if picked:
-                        chosen = np.vstack(picked)
-                        chosen_d = d2[picked_idx]
-                        break
-                else:
-                    top2 = ord2[:k]
-                    if top2.size > 0:
-                        chosen = selected2[top2]
-                        chosen_d = d2[top2]
-                        break
+            chosen = selected[top]
+            chosen_d = dists_cf[top]
 
         # --- Target probabilities for table (use code's column) ---
         if chosen.size and hasattr(model, "predict_proba"):
@@ -834,3 +686,138 @@ def counterfactuals(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+def _probas_to_list(clf, X1, target_names):
+    """
+    Return [{'label': name, 'p': prob}, ...] using the model's class order.
+    Assumes target_names is the label-encoder order used to build y.
+    """
+    if not hasattr(clf, "predict_proba"):
+        return []
+
+    p = clf.predict_proba(X1)[0]
+    # model.classes_ are integer codes (e.g., [0,1,2])
+    order = list(getattr(clf, "classes_", range(len(p))))
+    # Map each class code -> string name using the encoder order in target_names
+    names = [str(target_names[i]) for i in order]
+    return [{"label": names[i], "p": float(p[i])} for i in range(len(p))]
+
+
+def _tree_decision_path(model, scaler, x_orig, feature_names):
+    """
+    Deterministic path that x takes through the tree.
+    Each step shows the feature, operator, threshold (scaled & original), and that it's satisfied.
+    """
+    tree = model.tree_
+    feature = tree.feature
+    threshold = tree.threshold
+    left = tree.children_left
+    right = tree.children_right
+
+    x_scaled = scaler.transform([x_orig])[0]
+    path = []
+    node = 0
+    while left[node] != _tree.TREE_LEAF:  # not a leaf
+        f = feature[node]
+        thr = threshold[node]
+        thr_orig = thr * scaler.scale_[f] + scaler.mean_[f]
+        go_left = x_scaled[f] <= thr
+        path.append({
+            "feature": str(feature_names[f]),
+            "op": "<=" if go_left else ">",
+            "threshold_scaled": float(thr),
+            "threshold_orig": float(thr_orig),
+            "satisfied": True
+        })
+        node = left[node] if go_left else right[node]
+    return path
+
+
+def _tree_minimal_recourse(model, scaler, x_orig, feature_names, target_id):
+    """
+    Minimal L1 (in ORIGINAL units) change that sends x to a leaf whose majority class == target_id.
+    Returns {'cost_L1': float, 'steps': [{feature, from, to, delta}, ...]} or None.
+    """
+    tree = model.tree_
+    feature = tree.feature
+    threshold = tree.threshold
+    left = tree.children_left
+    right = tree.children_right
+    value = tree.value
+
+    # collect all target-class leaves with their (node, dir) path
+    leaves = []
+
+    def walk(node, path):
+        if left[node] == _tree.TREE_LEAF:
+            if value[node][0].argmax() == target_id:
+                leaves.append(path.copy())
+            return
+        path.append((node, 'L'))
+        walk(left[node], path)
+        path.pop()
+        path.append((node, 'R'))
+        walk(right[node], path)
+        path.pop()
+    walk(0, [])
+    if not leaves:
+        return None
+
+    x_scaled = scaler.transform([x_orig])[0]
+
+    def plan_for(path):
+        # deltas in scaled units needed to satisfy every split along the path
+        deltas = {}
+        for node, dir_ in path:
+            f = feature[node]
+            thr = threshold[node]
+            if f < 0:  # safety (shouldn't happen)
+                continue
+            if dir_ == 'L' and not (x_scaled[f] <= thr):
+                deltas[f] = min(deltas.get(f, float('inf')),
+                                thr - x_scaled[f] - 1e-6)
+            if dir_ == 'R' and not (x_scaled[f] > thr):
+                deltas[f] = max(deltas.get(f, float('-inf')),
+                                thr - x_scaled[f] + 1e-6)
+        # convert to ORIGINAL units
+        delta_scaled = np.zeros_like(x_scaled)
+        for j, d in deltas.items():
+            delta_scaled[j] = d
+        delta_orig = delta_scaled * scaler.scale_
+        cost = float(np.sum(np.abs(delta_orig)))
+        steps = []
+        for j, d in enumerate(delta_orig):
+            if abs(d) > 1e-9:
+                steps.append({
+                    "feature": str(feature_names[j]),
+                    "from": float(x_orig[j]),
+                    "to": float(x_orig[j] + d),
+                    "delta": float(d)
+                })
+        return cost, steps
+
+    plans = [plan_for(p) for p in leaves]
+    if not plans:
+        return None
+    cost, steps = sorted(plans, key=lambda t: t[0])[0]
+    return {"cost_L1": cost, "steps": steps}
+
+
+def _logistic_top_contributors(log_model, scaler, x_orig, feature_names, top_k=5):
+    """
+    Per-instance contributions for the predicted class: w_cj * x_scaled_j.
+    """
+    x_scaled = scaler.transform([x_orig])[0]
+    # predicted class index (consistent with clf.predict)
+    c_idx = int(log_model.predict([x_scaled])[0])
+    weights = log_model.coef_[c_idx]  # (n_features,)
+    contrib = weights * x_scaled
+    order = np.argsort(np.abs(contrib))[::-1][:top_k]
+    return [{
+        "feature": str(feature_names[i]),
+        "contribution": float(contrib[i]),
+        "abs_contribution": float(abs(contrib[i])),
+        "weight": float(weights[i]),
+        "x_scaled": float(x_scaled[i])
+    } for i in order]
