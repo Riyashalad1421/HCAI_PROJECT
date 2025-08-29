@@ -381,6 +381,81 @@
             grid-template-columns: repeat(2, 1fr);
         }
     }
+
+        /* === Dark-select fixes for Windows/Chrome & Firefox === */
+    :root { color-scheme: dark; }  /* hint to browsers for dark form controls */
+
+    /* Base look for all selects in this page */
+    .control-group select,
+    .param-group select,
+    #x-feature,
+    #y-feature,
+    select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) calc(var(--space-md) + 1.75rem) var(--space-md) var(--space-md); /* room for caret */
+    color: var(--text-primary) !important;
+    line-height: 1.25;
+    outline: none;
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='%23b8bcc8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+    }
+
+    .control-group select:focus,
+    .param-group select:focus,
+    #x-feature:focus,
+    #y-feature:focus,
+    select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+
+    /* Make the dropdown list itself dark & readable */
+    select option {
+    background-color: var(--dark-light);
+    color: var(--text-primary);
+    }
+
+    /* Improve selected/hovered option contrast */
+    select option:checked {
+    background-color: var(--primary);
+    color: #fff;
+    }
+    select option:hover {
+    background-color: var(--surface-elevated);
+    }
+
+    /* Disabled / placeholder options look muted */
+    select option[disabled] {
+    color: var(--text-muted);
+    }
+
+    /* Firefox fix: ensure visible text when focus ring style is used */
+    @-moz-document url-prefix() {
+    select:-moz-focusring {
+        color: transparent;
+        text-shadow: 0 0 0 var(--text-primary);
+    }
+    }
+
+    /* High-contrast caret for very dark themes */
+    @media (prefers-contrast: more) {
+    .control-group select,
+    .param-group select,
+    #x-feature,
+    #y-feature,
+    select {
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='%23ffffff' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
+    }
+    }
+
 </style>
 {% endblock %}
 
@@ -645,7 +720,7 @@
 </div>
 {% endblock %}
 
-{% block script %}
+{% block extra_js %}
 {% if csv_data %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -1015,4 +1090,4 @@
     });
 </script>
 {% endif %}
-{% endblock script %}
+{% endblock extra_js %}

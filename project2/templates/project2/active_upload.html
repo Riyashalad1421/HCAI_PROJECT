@@ -1,6 +1,64 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+  :root { color-scheme: dark; } /* dark-friendly native controls */
+
+  /* Form layout & labels */
+  .box form p { margin-bottom: var(--space-md); }
+  .box form label { font-weight: 600; color: var(--text-primary); display:block; margin-bottom: 6px; }
+
+  /* Inputs / selects look like your theme */
+  .box form input[type="text"],
+  .box form input[type="number"],
+  .box form input[type="file"],
+  .box form input[type="email"],
+  .box form input[type="password"],
+  .box form textarea,
+  .box form select,
+  .form-control {
+    width: 100%;
+    padding: var(--space-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    transition: var(--transition-base);
+  }
+  .box form input:focus,
+  .box form textarea:focus,
+  .box form select:focus,
+  .form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    background: var(--surface-elevated);
+  }
+
+  /* Dark-select fixes (Windows/Chrome & Firefox) */
+  .box form select,
+  select.form-control {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='%23b8bcc8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 14px;
+    padding-right: calc(var(--space-md) + 1.75rem);
+  }
+  .box form select option {
+    background-color: var(--dark-light);
+    color: var(--text-primary);
+  }
+  .box form select option:checked { background-color: var(--primary); color: #fff; }
+  .box form select option:hover { background: var(--surface-elevated); }
+  @-moz-document url-prefix() {
+    .box form select:-moz-focusring { color: transparent; text-shadow: 0 0 0 var(--text-primary); }
+  }
+
+  /* Button helper row */
+  .btn-row { display:flex; gap: var(--space-sm); flex-wrap: wrap; margin-top: var(--space-md); }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="box">
   <div class="title-container">
@@ -12,16 +70,22 @@
       {% csrf_token %}
 
       <p><strong>Step 1:</strong> Upload a CSV file with <code>review</code> and <code>sentiment</code> columns.</p>
-      <input type="file" name="file" required><br><br>
+      <input type="file" name="file" accept=".csv,text/csv" required class="form-control" />
+
+      <div style="height: var(--space-lg);"></div>
 
       <p><strong>Step 2:</strong> Choose an active learning strategy:</p>
-      <select name="strategy">
+      <select name="strategy" class="form-control">
         <option value="uncertainty">Uncertainty Sampling</option>
         <option value="entropy">Entropy Sampling</option>
         <option value="random">Random Sampling</option>
-      </select><br><br>
+      </select>
 
-      <button type="submit">Start Active Learning</button>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-play"></i> Start Active Learning
+        </button>
+      </div>
     </form>
   </div>
 </div>

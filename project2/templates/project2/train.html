@@ -1,4 +1,84 @@
 {% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+  :root { color-scheme: dark; } /* dark-friendly native controls */
+
+  /* Make Django form fields match your theme */
+  .box form p { margin-bottom: var(--space-md); }
+  .box form label { font-weight: 600; color: var(--text-primary); display:block; margin-bottom: 6px; }
+
+  .box form input[type="text"],
+  .box form input[type="number"],
+  .box form input[type="file"],
+  .box form input[type="email"],
+  .box form input[type="password"],
+  .box form textarea,
+  .box form select {
+    width: 100%;
+    padding: var(--space-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    transition: var(--transition-base);
+  }
+  .box form input:focus,
+  .box form textarea:focus,
+  .box form select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    background: var(--surface-elevated);
+  }
+
+  /* === Dark-select fixes (Windows/Chrome & Firefox) === */
+  .box form select {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='%23b8bcc8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 14px;
+    padding-right: calc(var(--space-md) + 1.75rem);
+  }
+  .box form select option {
+    background-color: var(--dark-light);
+    color: var(--text-primary);
+  }
+  .box form select option:checked { background-color: var(--primary); color: #fff; }
+  .box form select option:hover { background: var(--surface-elevated); }
+  @-moz-document url-prefix() {
+    .box form select:-moz-focusring { color: transparent; text-shadow: 0 0 0 var(--text-primary); }
+  }
+
+  /* Button row + local success variant (so we don’t rely on base) */
+  .btn-row { display:flex; gap: var(--space-sm); flex-wrap: wrap; margin-top: var(--space-md); }
+
+  /* base already has .btn and .btn-secondary; add a local .btn-success to match */
+  .btn-success {
+    background: linear-gradient(135deg, var(--success), rgba(16,185,129,0.85));
+    color: #fff;
+    box-shadow: var(--shadow-md);
+  }
+  .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* If any plain <button> slips through, make it look decent */
+  .box button:not(.btn) {
+    display:inline-flex; align-items:center; gap:var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    border:none; border-radius: var(--radius-lg);
+    font-weight:600; cursor:pointer; text-decoration:none;
+    background: var(--surface); color: var(--text-secondary);
+    border:1px solid var(--border); transition: var(--transition-base);
+  }
+  .box button:not(.btn):hover {
+    background: var(--surface-elevated); color: var(--text-primary);
+    border-color: var(--border-light); transform: translateY(-2px); box-shadow: var(--shadow-md);
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 {% load static %}
 
@@ -18,9 +98,16 @@
   <div class="main-text">
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
+      
       {{ form.as_p }}
-      <button type="submit" name="action" value="train">Train Model</button>
-      <button type="submit" name="action" value="load">Load Pretrained Model</button>
+      <div class="btn-row">
+        <button type="submit" name="action" value="train" class="btn btn-success">
+          <i class="fas fa-play"></i> Train Model
+        </button>
+        <button type="submit" name="action" value="load" class="btn btn-secondary">
+          <i class="fas fa-download"></i> Load Pretrained Model
+        </button>
+      </div>
     </form>
 
     <div id="spinner" style="display: none; margin-top: 1rem;">
@@ -38,9 +125,10 @@
 
     <div style="margin-top: 2rem;">
       <p><strong>Want to try Active Learning?</strong></p>
-      <a href="{% url 'project2:active_learning' %}" style="text-decoration: none;">
-        <button type="button">Go to Active Learning</button>
+      <a href="{% url 'project2:active_learning' %}" class="btn btn-secondary">
+        <i class="fas fa-flask"></i> Go to Active Learning
       </a>
+
     </div>
   </div>
 </div>

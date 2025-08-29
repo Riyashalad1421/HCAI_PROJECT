@@ -1,194 +1,1287 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Project 3 - Explainable AI Dashboard{% endblock %}
+
 {% block extra_css %}
-<!-- Your existing CSS remains unchanged -->
+<style>
+    /* Project 3 Specific Styles */
+    
+    /* Lambda Control Section */
+    .lambda-control {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: var(--space-2xl);
+        margin-bottom: var(--space-xl);
+        text-align: center;
+    }
+    
+    .lambda-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--space-lg);
+    }
+    
+    .lambda-formula {
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        margin: var(--space-lg) 0;
+        font-style: italic;
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        display: inline-block;
+        font-family: 'Times New Roman', serif;
+    }
+    
+    .lambda-description {
+        color: var(--text-secondary);
+        margin-bottom: var(--space-xl);
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.6;
+    }
+    
+    .slider-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-lg);
+        margin: var(--space-xl) 0;
+        flex-wrap: wrap;
+    }
+    
+    .slider-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .lambda-slider {
+        flex: 1;
+        max-width: 400px;
+        height: 6px;
+        background: var(--surface-elevated);
+        border-radius: var(--radius-md);
+        outline: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+    }
+    
+    .lambda-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-base);
+    }
+    
+    .lambda-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .lambda-slider::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .lambda-value {
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md) var(--space-lg);
+        font-weight: 600;
+        color: var(--accent);
+        font-family: var(--font-mono);
+        min-width: 100px;
+    }
+    
+    .current-params {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-xl);
+        margin-top: var(--space-lg);
+        flex-wrap: wrap;
+    }
+    
+    .param-display {
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        text-align: center;
+    }
+    
+    .param-label {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin-bottom: var(--space-xs);
+    }
+    
+    .param-value {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    
+    /* Loading Indicator */
+    .loading-indicator {
+        display: none;
+        text-align: center;
+        padding: var(--space-lg);
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+    
+    .loading-indicator.active {
+        display: block;
+    }
+    
+    .loading-spinner-custom {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border: 3px solid var(--surface-elevated);
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: var(--space-md);
+    }
+    
+    /* Tabs Navigation */
+    .model-tabs {
+        display: flex;
+        gap: var(--space-xs);
+        margin-bottom: var(--space-xl);
+        background: var(--surface-elevated);
+        border-radius: var(--radius-lg);
+        padding: var(--space-xs);
+        border: 1px solid var(--border);
+    }
+    
+    .model-tab {
+        flex: 1;
+        padding: var(--space-lg);
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+    }
+    
+    .model-tab.active {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .model-tab:hover:not(.active) {
+        background: var(--surface);
+    }
+    
+    /* Content Container */
+    .model-content {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: var(--space-xl);
+        margin-bottom: var(--space-xl);
+        min-height: 500px;
+    }
+    
+    /* Tab Content */
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+        animation: fadeInUp 0.4s ease;
+    }
+    
+    /* Metrics Display */
+    .metrics-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-lg);
+        margin-bottom: var(--space-xl);
+    }
+    
+    .metric-card {
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        text-align: center;
+        transition: var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(135deg, var(--success), var(--accent));
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .metric-card:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .metric-title {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: var(--space-sm);
+        font-weight: 600;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--accent);
+        font-family: var(--font-mono);
+    }
+    
+    /* Visualization Container */
+    .viz-container {
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        text-align: center;
+        margin-bottom: var(--space-xl);
+    }
+    
+    .viz-title {
+        color: var(--text-primary);
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: var(--space-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+    }
+    
+    .viz-container img {
+        max-width: 100%;
+        height: auto;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-base);
+    }
+    
+    .viz-container img:hover {
+        transform: scale(1.02);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Correlation Section */
+    .correlation-section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: var(--space-xl);
+        margin-bottom: var(--space-xl);
+    }
+    
+    /* Dataset Info */
+    .dataset-info {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        padding: var(--space-xl);
+        margin-bottom: var(--space-xl);
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-lg);
+        margin-bottom: var(--space-xl);
+    }
+    
+    .info-item {
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+    }
+    
+    .info-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: var(--space-sm);
+        font-weight: 600;
+    }
+    
+    .info-value {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .feature-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: var(--space-sm);
+        list-style: none;
+        padding: 0;
+        margin-top: var(--space-lg);
+    }
+    
+    .feature-list li {
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        transition: var(--transition-base);
+    }
+    
+    .feature-list li:hover {
+        background: var(--primary);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+        /* Simple, accessible tooltips that match your dark theme */
+    .tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    }
+    .tooltip .hint {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: help;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+    }
+    .tooltip .hint:hover { transform: translateY(-1px); background: var(--surface-elevated); }
+
+    .tooltip .bubble {
+    position: absolute;
+    left: 0; top: calc(100% + 8px);
+    min-width: 260px; max-width: 380px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    box-shadow: var(--shadow-md);
+    z-index: 9999;
+    opacity: 0; transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    }
+    .tooltip .bubble:before {
+    content: "";
+    position: absolute; top: -6px; left: 12px;
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-bottom: 6px solid var(--border);
+    }
+    .tooltip .bubble:after {
+    content: "";
+    position: absolute; top: -5px; left: 12px;
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-bottom: 6px solid var(--surface-elevated);
+    }
+    .tooltip:hover .bubble, .tooltip:focus-within .bubble {
+    opacity: 1; transform: translateY(0);
+    }
+
+    /* --- Dark theme select / option visibility fixes --- */
+    select,
+    input[type="number"] {
+    color: var(--text-primary);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    }
+
+    select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    /* Native dropdown list items (options) – make them visible on dark themes */
+    select option {
+    color: var(--text-primary);        /* readable text */
+    background: var(--dark-light);     /* dark background for the list */
+    }
+
+    /* Optional: placeholder/disabled option style */
+    select option[disabled],
+    select option[value=""] {
+    color: var(--text-muted);
+    }
+
+    /* Ensure number input spinners are visible */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: auto;
+    margin: 0;
+    }
+    input[type="number"] {
+    -moz-appearance: textfield; /* Firefox uses textfield by default; keep steppers behavior consistent */
+    }
+
+
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .slider-container {
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .lambda-slider {
+            width: 100%;
+            max-width: none;
+        }
+        
+        .current-params {
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .model-tabs {
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+        
+        .metrics-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .feature-list {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .metrics-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+        }
+        
+        .lambda-formula {
+            font-size: 1rem;
+            padding: var(--space-md);
+        }
+    }
+
+        /* === Fancy checkbox chips for CF constraints === */
+    #cf-only-inc label,
+    #cf-only-dec label {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+    }
+    #cf-only-inc label:hover,
+    #cf-only-dec label:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-light);
+    }
+
+    /* Hide native box but keep it accessible */
+    #cf-only-inc input[type="checkbox"],
+    #cf-only-dec input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+    }
+
+    /* Text + custom box */
+    #cf-only-inc label span,
+    #cf-only-dec label span {
+    position: relative;
+    padding-left: 28px;               /* room for custom box */
+    color: var(--text-primary);
+    line-height: 1.2;
+    }
+
+    /* The box */
+    #cf-only-inc label span::before,
+    #cf-only-dec label span::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-50%);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-elevated);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.35);
+    transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    /* The checkmark */
+    #cf-only-inc label span::after,
+    #cf-only-dec label span::after {
+    content: "\f00c"; /* Font Awesome check */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    text-align: center;
+    transform: translateY(-52%) scale(0.85);
+    color: #fff;
+    opacity: 0;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    }
+
+    /* Hover focus ring */
+    #cf-only-inc label:hover span::before,
+    #cf-only-dec label:hover span::before {
+    border-color: var(--primary);
+    }
+    #cf-only-inc input[type="checkbox"]:focus + span::before,
+    #cf-only-dec input[type="checkbox"]:focus + span::before {
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.18);
+    border-color: var(--primary);
+    }
+
+    /* Checked state */
+    #cf-only-inc input[type="checkbox"]:checked + span::before,
+    #cf-only-dec input[type="checkbox"]:checked + span::before {
+    background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.85));
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(99,102,241,0.25), var(--shadow-sm);
+    }
+    #cf-only-inc input[type="checkbox"]:checked + span::after,
+    #cf-only-dec input[type="checkbox"]:checked + span::after {
+    opacity: 1;
+    transform: translateY(-52%) scale(1);
+    }
+
+    /* Disabled look (if you ever need it) */
+    #cf-only-inc input[type="checkbox"]:disabled + span,
+    #cf-only-dec input[type="checkbox"]:disabled + span {
+    color: var(--text-muted);
+    }
+    #cf-only-inc input[type="checkbox"]:disabled + span::before,
+    #cf-only-dec input[type="checkbox"]:disabled + span::before {
+    opacity: 0.6;
+    }
+
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="box">
-
-  <!-- 🔹 Title -->
-  <div class="title-container">
-    <h1>Project 3: Palmer Penguins Models</h1>
-  </div>
-
-  <!-- 🔹 Lambda Control -->
-  <div class="lambda-control">
-    <h2>Model Sparsity Function (λ)</h2>
-    <div class="lambda-formula">
-      arg min<sub>f</sub> 1/n ∑<sub>i=1</sub><sup>n</sup> ℓ(f(x<sub>i</sub>), y<sub>i</sub>) + λΩ(f)
+    <div class="title-container">
+        <div class="title">
+            <i class="fas fa-search"></i>
+            Explainable AI Dashboard
+        </div>
+        <div class="subtitle">
+            Interactive model sparsity control with real-time explanations for Decision Trees and Logistic Regression
+        </div>
     </div>
-    <div style="margin-top: 15px;">
-      <strong>Current max_depth:</strong> <span id="max-depth-display">{{ max_depth }}</span>
+
+    {% if error %}
+    <div class="alert alert-error">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ error }}
     </div>
-    <div class="slider-container">
-      <span>Less sparse</span>
-      <input type="range" id="lambda-slider" class="slider" min="0.001" max="1" step="0.001" value="{{ lambda_value }}">
-      <span>More sparse</span>
-      <div class="lambda-value">λ = <span id="lambda-display">{{ lambda_value }}</span></div>
+    {% else %}
+
+    <!-- Lambda Control Section -->
+    <div class="lambda-control">
+        <h2 class="lambda-title">
+            <i class="fas fa-sliders-h"></i>
+            Model Sparsity Function (λ)
+        </h2>
+        
+        <div class="lambda-description">
+            Control the complexity-performance trade-off using the regularization parameter λ. Higher values create simpler, more interpretable models with potentially lower accuracy.
+        </div>
+        
+        <div class="lambda-formula">
+            arg min<sub>f</sub> 1/n ∑<sub>i=1</sub><sup>n</sup> ℓ(f(x<sub>i</sub>), y<sub>i</sub>) + λΩ(f)
+        </div>
+        
+        <div class="slider-container">
+            <span class="slider-label">Less sparse</span>
+            <input type="range" id="lambda-slider" class="lambda-slider" 
+                   min="0.001" max="1" step="0.001" value="{{ lambda_value }}">
+            <span class="slider-label">More sparse</span>
+            <div class="lambda-value">λ = <span id="lambda-display">{{ lambda_value }}</span></div>
+        </div>
+        
+        <div class="current-params">
+            <div class="param-display">
+                <div class="param-label">Decision Tree Max Depth</div>
+                <div class="param-value" id="max-depth-display">{{ max_depth }}</div>
+            </div>
+            <div class="param-display">
+                <div class="param-label">Logistic Regression C</div>
+                <div class="param-value" id="c-value-display">{{ C_value }}</div>
+            </div>
+        </div>
+        
+        <div class="loading-indicator" id="loading-indicator">
+            <span class="loading-spinner-custom"></span>
+            Updating models with new sparsity parameter...
+        </div>
     </div>
-    <div class="loading" id="loading-indicator">
-      <p>Updating models... <span id="loading-spinner">⏳</span></p>
+
+    <!-- Model Tabs -->
+    <div class="model-tabs">
+        <button class="model-tab active" onclick="showTab('tree-tab', this)">
+            <i class="fas fa-tree"></i>
+            Decision Tree
+        </button>
+        <button class="model-tab" onclick="showTab('logistic-tab', this)">
+            <i class="fas fa-function"></i>
+            Logistic Regression
+        </button>
     </div>
-  </div>
 
-  {% if error %}
-    <p style="color:red; text-align:center;">{{ error }}</p>
-  {% else %}
+    <!-- Model Content Container -->
+    <div class="model-content">
+        
+        <!-- Decision Tree Tab -->
+        <div id="tree-tab" class="tab-content active">
+            <div class="metrics-container">
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <i class="fas fa-bullseye"></i>
+                        Accuracy
+                    </div>
+                    <div class="metric-value" id="accuracy-display">{{ tree_accuracy }}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <i class="fas fa-sitemap"></i>
+                        Tree Complexity
+                    </div>
+                    <div class="metric-value" id="leaves-display">{{ tree_n_leaves }} leaves</div>
+                </div>
+            </div>
+            
+            <div class="viz-container">
+                <h4 class="viz-title">
+                    <i class="fas fa-project-diagram"></i>
+                    Decision Tree Structure
+                </h4>
+                <img src="data:image/png;base64,{{ tree_plot }}" alt="Decision Tree" id="tree-image">
+            </div>
+            
+            <div class="viz-container">
+                <h4 class="viz-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Feature Importance
+                </h4>
+                <img src="data:image/png;base64,{{ importance_plot }}" alt="Feature Importance" id="importance-image">
+            </div>
+        </div>
 
-  <!-- Tab Buttons -->
-<div style="display: flex; justify-content: center; margin-bottom: 20px;">
-  <button class="tab-button active-tab" onclick="showTab('tree-tab', this)">Decision Tree</button>
-  <button class="tab-button" onclick="showTab('logistic-tab', this)">Logistic Regression</button>
-</div>
+        <!-- Logistic Regression Tab -->
+        <div id="logistic-tab" class="tab-content">
+            <div class="metrics-container">
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <i class="fas fa-bullseye"></i>
+                        Accuracy
+                    </div>
+                    <div class="metric-value" id="logistic-accuracy-display">{{ logistic_accuracy }}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <i class="fas fa-layer-group"></i>
+                        Feature Complexity
+                    </div>
+                    <div class="metric-value" id="logistic-features-display">{{ logistic_n_features }} features</div>
+                </div>
+            </div>
+            
+            <div class="viz-container">
+                <h4 class="viz-title">
+                    <i class="fas fa-weight"></i>
+                    Model Coefficients
+                </h4>
+                <img src="data:image/png;base64,{{ logistic_plot }}" alt="Logistic Coefficients" id="logistic-image">
+            </div>
+        </div>
+    </div>
 
-<!-- Decision Tree Tab -->
-<div id="tree-tab" class="tab-content" style="display: block;">
-  <h2 style="text-align: center;">Decision Tree</h2>
-  <div class="metrics-container" style="display: flex; justify-content: center; gap: 20px;">
-    <div class="metric-card"><h3>Accuracy</h3><p id="accuracy-display">{{ tree_accuracy }}%</p></div>
-    <div class="metric-card"><h3>Tree Complexity</h3><p id="leaves-display">{{ tree_n_leaves }} leaves</p></div>
-  </div>
-  <div class="tree-container">
-    <img src="data:image/png;base64,{{ tree_plot }}" alt="Decision Tree" id="tree-image" style="max-width:100%; height:auto;">
-  </div>
-  <div class="feature-item">
-    <h3>Feature Importance (Tree)</h3>
-    <img src="data:image/png;base64,{{ importance_plot }}" alt="Tree Feature Importance" id="importance-image" style="max-width:100%; height:auto;">
-  </div>
-</div>
+    <!-- Correlation Analysis -->
+    <div class="correlation-section">
+        <div class="title-container">
+            <h2 class="gradient-text">
+                <i class="fas fa-network-wired"></i>
+                Feature Correlation Analysis
+            </h2>
+        </div>
+        <div class="viz-container">
+            <img src="data:image/png;base64,{{ corr_plot }}" alt="Correlation Matrix">
+        </div>
+    </div>
 
-<!-- Logistic Regression Tab -->
-<div id="logistic-tab" class="tab-content" style="display: none;">
-  <h2 style="text-align: center;">Logistic Regression</h2>
-  <div class="metrics-container" style="display: flex; justify-content: center; gap: 20px;">
-    <div class="metric-card"><h3>Accuracy</h3><p id="logistic-accuracy-display">{{ logistic_accuracy }}%</p></div>
-    <div class="metric-card"><h3>Feature Complexity</h3><p id="logistic-features-display">{{ logistic_n_features }} features</p></div>
-  </div>
-  <div class="tree-container">
-    <img src="data:image/png;base64,{{ logistic_plot }}" alt="Logistic Coefficients" id="logistic-image" style="max-width:100%; height:auto;">
-  </div>
-</div>
+    <!-- Dataset Information -->
+    <div class="dataset-info">
+        <div class="title-container">
+            <h2 class="gradient-text">
+                <i class="fas fa-database"></i>
+                Dataset Information
+            </h2>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Dataset</div>
+                <div class="info-value">Palmer Penguins</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Target Variable</div>
+                <div class="info-value">{{ target }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Number of Features</div>
+                <div class="info-value">{{ features|length }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Model Type</div>
+                <div class="info-value">Classification</div>
+            </div>
+        </div>
+        
+        <div>
+            <h4 style="color: var(--text-primary); margin-bottom: var(--space-lg);">
+                <i class="fas fa-list"></i>
+                Available Features
+            </h4>
+            <ul class="feature-list">
+                {% for feature in features %}
+                <li>{{ feature }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="mt-xl">
+            <p class="text-center" style="color: var(--text-secondary); line-height: 1.6;">
+                <strong>About the Dataset:</strong> The Palmer Penguins dataset contains size measurements 
+                for three penguin species observed on three islands in the Palmer Archipelago, Antarctica. 
+                This dataset serves as a modern alternative to the classic Iris dataset for data exploration 
+                and machine learning education.
+            </p>
+        </div>
+    </div>
+    <!-- Counterfactual Explanations (all controls in one place) -->
+    <div class="correlation-section" id="cf-panel">
+    <div class="title-container">
+        <h2 class="gradient-text"><i class="fas fa-magic"></i> Counterfactual Explanations</h2>
+    </div>
+
+    <div class="lambda-control" style="margin-top: var(--space-lg);">
+        <!-- Core controls -->
+        <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label" data-tip="Row in the original dataset. Try 0, 5, 12, 30.">Pick instance (row index)</div>
+            <input id="cf-index" type="number" min="0" step="1" value="0" class="form-control" />
+            <small class="text-muted">0 = first row</small>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label"data-tip="Which class you want the model to predict after changes.">
+                Target label</div>
+            <select id="cf-target" class="form-control">
+            {% for cls in target_names %}
+                <option value="{{ cls }}">{{ cls }}</option>
+            {% endfor %}
+            </select>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label" data-tip="Choose the model used to check/score counterfactuals.">
+                Model</div>
+            <select id="cf-model" class="form-control">
+            <option value="logistic">Logistic Regression</option>
+            <option value="tree">Decision Tree</option>
+            </select>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label" data-tip="N = number of local samples to try; Top-k = how many best counterfactuals to keep.">
+                Sampling (N) / Top-k</div>
+            <div style="display:flex; gap: var(--space-sm);">
+            <input id="cf-N" type="number" min="100" step="100" value="2000" class="input" style="max-width:120px;">
+            <input id="cf-k" type="number" min="1" step="1" value="5" class="input" style="max-width:80px;">
+            </div>
+        </div>
+        </div>
+
+        <!-- Actionability constraints (in the same panel) -->
+        <div class="title-container" style="margin-top: var(--space-lg);">
+        <h3 class="gradient-text"><i class="fas fa-user-shield"></i> Actionability Constraints</h3>
+        </div>
+
+        <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label" data-tip="Features you cannot change (e.g., year).">Immutable features (cannot change)</div>
+            <div id="cf-immutables" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+            {% for f in features %}
+                <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" value="{{ f }}"> <span>{{ f }}</span>
+                </label>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label" data-tip="Features allowed to move only upward from the instance value.">
+                Only increase</div>
+            <div id="cf-only-inc" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+            {% for f in features %}
+                <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" value="{{ f }}"> <span>{{ f }}</span>
+                </label>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label" data-tip="Features allowed to move only downward from the instance value.">
+                Only decrease</div>
+            <div id="cf-only-dec" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+            {% for f in features %}
+                <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" value="{{ f }}"> <span>{{ f }}</span>
+                </label>
+            {% endfor %}
+            </div>
+        </div>
+        </div>
+
+        <!-- (Optional) Plausibility & diversity toggles — still in this one panel -->
+        <div class="info-grid" style="margin-top: var(--space-md);">
+        <div class="info-item">
+            <label style="display:flex;align-items:center;gap:8px;" data-tip="Filters out points far from training data in feature space using k-NN density.">
+            <input type="checkbox" id="cf-plaus" checked> Enforce plausibility (kNN density)
+            </label>
+            <div class="info-label" style="margin-top:8px;">Keep densest quantile</div>
+            <input id="cf-dens-q" type="number" min="0" max="1" step="0.05" value="0.7" class="form-control" />
+        </div>
+        <div class="info-item">
+            <label style="display:flex;align-items:center;gap:8px;" data-tip="Avoid near-duplicate counterfactuals using a minimum MAD-weighted L1 distance.">
+            <input type="checkbox" id="cf-diverse" checked> Enforce diversity (min MAD-L1)
+            </label>
+            <div class="info-label" style="margin-top:8px;">Min MAD-L1 between CFs</div>
+            <input id="cf-div-min" type="number" min="0" step="0.05" value="0.2" class="form-control" />
+        </div>
+        </div>
+
+        <!-- Single button at the very bottom -->
+        <div style="margin-top: var(--space-lg); text-align:center;">
+        <button id="cf-run" class="btn btn-primary">
+            <i class="fas fa-play"></i> Generate Counterfactuals
+        </button>
+        </div>
+
+        <div class="loading-indicator" id="cf-loading" style="margin-top: var(--space-md);">
+        <span class="loading-spinner-custom"></span> Searching locally for counterfactuals...
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="viz-container" style="overflow:auto; margin-top: var(--space-lg);">
+        <h4 class="viz-title"><i class="fas fa-table"></i> Top Counterfactuals (MAD-weighted L1)</h4>
+        <div id="cf-results" style="width:100%; overflow:auto;">
+        <div class="text-center" style="color:var(--text-secondary);">No counterfactuals yet.</div>
+        </div>
+    </div>
+    </div>
 
 
-  
 
-    
 
-    
-  </div>
-
-  <!-- 🔹 Correlation Plot -->
-  <div class="feature-item" style="margin-top: 40px;">
-    <h2 style="text-align: center;">Correlation Plot</h2>
-    <img src="data:image/png;base64,{{ corr_plot }}" alt="Correlation Plot" style="max-width:100%; height:auto;">
-  </div>
-
-  <!-- 🔹 Dataset Info -->
-  <div class="dataset-info-box" style="margin-top: 40px;">
-    <h2>Dataset Information</h2>
-    <p><strong>Dataset:</strong> Palmer Penguins</p>
-    <p><strong>Target Variable:</strong> {{ target }}</p>
-    <p><strong>Features:</strong></p>
-    <ul style="columns: 2;">
-      {% for feature in features %}
-        <li>{{ feature }}</li>
-      {% endfor %}
-    </ul>
-  </div>
-
-  {% endif %}
+    {% endif %}
 </div>
 {% endblock %}
 
-{% block script %}
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const lambdaSlider = document.getElementById('lambda-slider');
-  const lambdaDisplay = document.getElementById('lambda-display');
-  const accuracyDisplay = document.getElementById('accuracy-display');
-  const leavesDisplay = document.getElementById('leaves-display');
-  const treeImage = document.getElementById('tree-image');
-  const importanceImage = document.getElementById('importance-image');
-  const logisticAccuracyDisplay = document.getElementById('logistic-accuracy-display');
-  const logisticFeaturesDisplay = document.getElementById('logistic-features-display');
-  const logisticImage = document.getElementById('logistic-image');
-  const maxDepthDisplay = document.getElementById('max-depth-display');
-  const loadingIndicator = document.getElementById('loading-indicator');
-  const loadingSpinner = document.getElementById('loading-spinner');
-
-  let updateTimeout;
-  const DEBOUNCE_DELAY = 500;
-
-  lambdaSlider.addEventListener('input', function() {
-    lambdaDisplay.textContent = parseFloat(this.value).toFixed(3);
-  });
-
-  lambdaSlider.addEventListener('change', function() {
-    if (updateTimeout) clearTimeout(updateTimeout);
-    updateTimeout = setTimeout(() => updateModel(lambdaSlider.value), DEBOUNCE_DELAY);
-  });
-
-  let animationFrame = 0;
-  const loadingChars = ['⏳', '⌛'];
-
-  function animateLoading() {
-    if (loadingIndicator.style.display === 'block') {
-      animationFrame = (animationFrame + 1) % loadingChars.length;
-      loadingSpinner.textContent = loadingChars[animationFrame];
-      setTimeout(animateLoading, 500);
+    // Tab switching functionality
+    function showTab(tabId, button) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.model-tab').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Show selected tab and activate button
+        document.getElementById(tabId).classList.add('active');
+        button.classList.add('active');
     }
-  }
 
-  function updateModel(lambdaValue) {
-    loadingIndicator.style.display = 'block';
-    animateLoading();
+    function attachTooltips(scope = document) {
+        scope.querySelectorAll('[data-tip]').forEach(el => {
+        if (el.dataset.tipInit) return; // avoid duplicates
+        el.dataset.tipInit = "1";
+        const wrapper = document.createElement('span');
+        wrapper.className = 'tooltip';
 
-    fetch('{% url "project3:update_model" %}', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({ lambda: lambdaValue })
-    })
-    .then(response => {
-      if (!response.ok) throw new Error('Network response was not ok');
-      return response.json();
-    })
-    .then(data => {
-      // Decision Tree Updates
-      accuracyDisplay.textContent = data.tree_accuracy + '%';
-      leavesDisplay.textContent = data.tree_n_leaves + ' leaves';
-      treeImage.src = 'data:image/png;base64,' + data.tree_plot;
-      importanceImage.src = 'data:image/png;base64,' + data.importance_plot;
-      maxDepthDisplay.textContent = data.max_depth;
+        // move the label text inside wrapper
+        const label = document.createElement('span');
+        label.textContent = el.textContent;
+        el.textContent = '';
 
-      // Logistic Regression Updates
-      logisticAccuracyDisplay.textContent = data.logistic_accuracy + '%';
-      logisticFeaturesDisplay.textContent = data.logistic_n_features + ' features';
-      logisticImage.src = 'data:image/png;base64,' + data.logistic_plot;
+        // hint icon
+        const hint = document.createElement('span');
+        hint.className = 'hint';
+        hint.setAttribute('tabindex', '0');
+        hint.setAttribute('aria-label', 'More info');
+        hint.textContent = '?';
 
-      loadingIndicator.style.display = 'none';
-    })
-    .catch(error => {
-      console.error('Error updating models:', error);
-      loadingIndicator.style.display = 'none';
-      alert('Error updating models.');
+        // bubble
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = el.getAttribute('data-tip');
+
+        wrapper.appendChild(label);
+        wrapper.appendChild(hint);
+        wrapper.appendChild(bubble);
+        el.appendChild(wrapper);
+        });
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get DOM elements
+        const lambdaSlider = document.getElementById('lambda-slider');
+        const lambdaDisplay = document.getElementById('lambda-display');
+        const accuracyDisplay = document.getElementById('accuracy-display');
+        const leavesDisplay = document.getElementById('leaves-display');
+        const treeImage = document.getElementById('tree-image');
+        const importanceImage = document.getElementById('importance-image');
+        const logisticAccuracyDisplay = document.getElementById('logistic-accuracy-display');
+        const logisticFeaturesDisplay = document.getElementById('logistic-features-display');
+        const logisticImage = document.getElementById('logistic-image');
+        const maxDepthDisplay = document.getElementById('max-depth-display');
+        const cValueDisplay = document.getElementById('c-value-display');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        
+
+        const cfBtn = document.getElementById('cf-run');
+        const cfIndex = document.getElementById('cf-index');
+        const cfTarget = document.getElementById('cf-target');
+        const cfModel = document.getElementById('cf-model');
+        const cfN = document.getElementById('cf-N');
+        const cfK = document.getElementById('cf-k');
+        const cfLoading = document.getElementById('cf-loading');
+        const cfResults = document.getElementById('cf-results');
+
+        // Prevent negative values & NaN
+        cfIndex.addEventListener('input', () => {
+        const v = parseInt(cfIndex.value, 10);
+        if (Number.isNaN(v) || v < 0) cfIndex.value = 0;
+        });
+        
+        // Debouncing variables
+        let updateTimeout;
+        const DEBOUNCE_DELAY = 500;
+        
+        // Update lambda display when slider moves
+        lambdaSlider.addEventListener('input', function() {
+            lambdaDisplay.textContent = parseFloat(this.value).toFixed(3);
+        });
+        
+        // Trigger model update when slider stops moving (debounced)
+        lambdaSlider.addEventListener('change', function() {
+            if (updateTimeout) {
+                clearTimeout(updateTimeout);
+            }
+            
+            updateTimeout = setTimeout(function() {
+                updateModel(lambdaSlider.value);
+            }, DEBOUNCE_DELAY);
+        });
+
+        attachTooltips(document);
+        
+        // Model update function
+        function updateModel(lambdaValue) {
+            // Show loading indicator
+            loadingIndicator.classList.add('active');
+            
+            // Send AJAX request
+            fetch('{% url "project3:update_model" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    lambda: lambdaValue
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update Decision Tree metrics
+                accuracyDisplay.textContent = data.tree_accuracy + '%';
+                leavesDisplay.textContent = data.tree_n_leaves + ' leaves';
+                treeImage.src = 'data:image/png;base64,' + data.tree_plot;
+                importanceImage.src = 'data:image/png;base64,' + data.importance_plot;
+                maxDepthDisplay.textContent = data.max_depth;
+                
+                // Update Logistic Regression metrics
+                logisticAccuracyDisplay.textContent = data.logistic_accuracy + '%';
+                logisticFeaturesDisplay.textContent = data.logistic_n_features + ' features';
+                logisticImage.src = 'data:image/png;base64,' + data.logistic_plot;
+                cValueDisplay.textContent = data.C_value;
+                
+                // Hide loading indicator
+                loadingIndicator.classList.remove('active');
+                
+                // Add success feedback
+                showUpdateSuccess();
+            })
+            .catch(error => {
+                console.error('Error updating model:', error);
+                loadingIndicator.classList.remove('active');
+                showUpdateError('Failed to update models. Please try again.');
+            });
+        }
+
+        function renderCFTable(payload) {
+            if (!payload || !payload.counterfactuals || payload.counterfactuals.length === 0) {
+            cfResults.innerHTML = '<div class="text-center" style="color:var(--text-secondary);">No counterfactuals found. Try increasing N or choosing a different target label.</div>';
+            return;
+            }
+            const cols = payload.feature_names || Object.keys(payload.counterfactuals[0].features);
+            let thead = '<thead><tr>' + cols.map(c => `<th style="white-space:nowrap; padding:6px 10px; text-align:left;">${c}</th>`).join('') +
+            `<th style="padding:6px 10px; text-align:left;">MAD-L1</th><th style="padding:6px 10px; text-align:left;">P(target)</th></tr></thead>`;
+            let rows = payload.counterfactuals.map(r => {
+            const featCells = cols.map(c => `<td style="padding:6px 10px;">${(+r.features[c]).toFixed(3)}</td>`).join('');
+            const dist = (r.mad_weighted_l1 != null) ? r.mad_weighted_l1.toFixed(3) : '';
+            const prob = (r.target_prob == null) ? '' : r.target_prob.toFixed(3);
+            return `<tr>${featCells}<td style="padding:6px 10px;">${dist}</td><td style="padding:6px 10px;">${prob}</td></tr>`;
+            }).join('');
+            cfResults.innerHTML = `<div style="overflow:auto;"><table style="width:100%; border-collapse:collapse;">
+            ${thead}<tbody>${rows}</tbody></table></div>`;
+        }
+
+                // Helper: collect checked values from a checkbox grid by container id
+        function getCheckedValues(containerId) {
+            return Array.from(
+                document.querySelectorAll('#' + containerId + ' input[type="checkbox"]:checked')
+            ).map(el => el.value);
+        }
+
+
+        cfBtn.addEventListener('click', () => {
+            cfLoading.classList.add('active');
+            cfResults.innerHTML = '';
+            fetch('{% url "project3:counterfactuals" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+            lambda: parseFloat(lambdaSlider.value || '{{ lambda_value }}'),
+            instance_index: parseInt(cfIndex.value || '0'),
+            target_label: cfTarget.value,
+            model_type: cfModel.value,
+            N: parseInt(cfN.value || '2000'),
+            k: parseInt(cfK.value || '5'),
+
+            // actionability
+            immutables: getCheckedValues('cf-immutables'),
+            only_increase: getCheckedValues('cf-only-inc'),
+            only_decrease: getCheckedValues('cf-only-dec'),
+
+            // plausibility & diversity (optional)
+            enforce_plausibility: document.getElementById('cf-plaus')?.checked || false,
+            density_quantile: parseFloat(document.getElementById('cf-dens-q')?.value || '0.7'),
+            enforce_diversity: document.getElementById('cf-diverse')?.checked || false,
+            diversity_min_l1: parseFloat(document.getElementById('cf-div-min')?.value || '0.2')
+            })
+
+
+            })
+            .then(async r => {
+                const text = await r.text();
+                if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
+                return JSON.parse(text);
+            })
+            .then(payload => {
+                renderCFTable(payload);
+                cfLoading.classList.remove('active');
+            })
+            .catch(err => {
+                console.error('CF error:', err.message);
+                cfLoading.classList.remove('active');
+                cfResults.innerHTML = `<div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i> ${err.message}
+                </div>`;
+            });
+        });
+        
+        // Success feedback
+        function showUpdateSuccess() {
+            const successMsg = document.createElement('div');
+            successMsg.className = 'alert alert-success fade-in-down';
+            successMsg.innerHTML = '<i class="fas fa-check-circle"></i> Models updated successfully!';
+            
+            document.querySelector('.lambda-control').appendChild(successMsg);
+            
+            setTimeout(() => {
+                successMsg.style.opacity = '0';
+                successMsg.style.transform = 'translateY(-10px)';
+                setTimeout(() => successMsg.remove(), 300);
+            }, 2000);
+        }
+        
+        // Error feedback
+        function showUpdateError(message) {
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'alert alert-error fade-in-down';
+            errorMsg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + message;
+            
+            document.querySelector('.lambda-control').appendChild(errorMsg);
+            
+            setTimeout(() => {
+                errorMsg.style.opacity = '0';
+                errorMsg.style.transform = 'translateY(-10px)';
+                setTimeout(() => errorMsg.remove(), 300);
+            }, 4000);
+        }
+        
+        // Smooth image transitions
+        function updateImageWithTransition(img, newSrc) {
+            img.style.opacity = '0.5';
+            img.style.transform = 'scale(0.98)';
+            
+            const newImg = new Image();
+            newImg.onload = function() {
+                img.src = newSrc;
+                img.style.opacity = '1';
+                img.style.transform = 'scale(1)';
+            };
+            newImg.src = newSrc;
+        }
+        
+        // Enhanced slider interaction
+        lambdaSlider.addEventListener('mousedown', function() {
+            this.classList.add('active');
+        });
+        
+        document.addEventListener('mouseup', function() {
+            lambdaSlider.classList.remove('active');
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        document.querySelector('[onclick="showTab(\'tree-tab\', this)"]').click();
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        document.querySelector('[onclick="showTab(\'logistic-tab\', this)"]').click();
+                        break;
+                }
+            }
+        });
+        
+        // Add keyboard shortcut hints
+        const shortcuts = document.createElement('div');
+        shortcuts.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-sm);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            z-index: 100;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        `;
+        shortcuts.innerHTML = `
+            <div><kbd>Ctrl+1</kbd> Decision Tree</div>
+            <div><kbd>Ctrl+2</kbd> Logistic Regression</div>
+        `;
+        shortcuts.addEventListener('mouseenter', () => shortcuts.style.opacity = '1');
+        shortcuts.addEventListener('mouseleave', () => shortcuts.style.opacity = '0.7');
+        
+        document.body.appendChild(shortcuts);
     });
-  }
-
-  function showTab(tabId, button) {
-  document.getElementById('tree-tab').style.display = (tabId === 'tree-tab') ? 'block' : 'none';
-  document.getElementById('logistic-tab').style.display = (tabId === 'logistic-tab') ? 'block' : 'none';
-
-  const buttons = document.querySelectorAll('.tab-button');
-  buttons.forEach(btn => btn.classList.remove('active-tab'));
-  button.classList.add('active-tab');
-}
-});
 </script>
-{% endblock %}
-
-
+{% endblock extra_js %}

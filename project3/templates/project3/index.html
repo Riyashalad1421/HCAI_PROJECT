@@ -4,465 +4,7 @@
 {% block title %}Project 3 - Explainable AI Dashboard{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Project 3 Specific Styles */
-    
-    /* Lambda Control Section */
-    .lambda-control {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        padding: var(--space-2xl);
-        margin-bottom: var(--space-xl);
-        text-align: center;
-    }
-    
-    .lambda-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: var(--space-lg);
-    }
-    
-    .lambda-formula {
-        background: var(--surface-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: var(--space-lg);
-        margin: var(--space-lg) 0;
-        font-style: italic;
-        font-size: 1.1rem;
-        color: var(--text-secondary);
-        display: inline-block;
-        font-family: 'Times New Roman', serif;
-    }
-    
-    .lambda-description {
-        color: var(--text-secondary);
-        margin-bottom: var(--space-xl);
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
-        line-height: 1.6;
-    }
-    
-    .slider-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-lg);
-        margin: var(--space-xl) 0;
-        flex-wrap: wrap;
-    }
-    
-    .slider-label {
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-    
-    .lambda-slider {
-        flex: 1;
-        max-width: 400px;
-        height: 6px;
-        background: var(--surface-elevated);
-        border-radius: var(--radius-md);
-        outline: none;
-        -webkit-appearance: none;
-        cursor: pointer;
-    }
-    
-    .lambda-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 24px;
-        height: 24px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border-radius: 50%;
-        cursor: pointer;
-        box-shadow: var(--shadow-sm);
-        transition: var(--transition-base);
-    }
-    
-    .lambda-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.1);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .lambda-slider::-moz-range-thumb {
-        width: 24px;
-        height: 24px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border-radius: 50%;
-        cursor: pointer;
-        border: none;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .lambda-value {
-        background: var(--surface-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: var(--space-md) var(--space-lg);
-        font-weight: 600;
-        color: var(--accent);
-        font-family: var(--font-mono);
-        min-width: 100px;
-    }
-    
-    .current-params {
-        display: flex;
-        justify-content: center;
-        gap: var(--space-xl);
-        margin-top: var(--space-lg);
-        flex-wrap: wrap;
-    }
-    
-    .param-display {
-        background: var(--surface-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        padding: var(--space-md);
-        text-align: center;
-    }
-    
-    .param-label {
-        color: var(--text-muted);
-        font-size: 0.8rem;
-        margin-bottom: var(--space-xs);
-    }
-    
-    .param-value {
-        color: var(--text-primary);
-        font-weight: 600;
-    }
-    
-    /* Loading Indicator */
-    .loading-indicator {
-        display: none;
-        text-align: center;
-        padding: var(--space-lg);
-        color: var(--text-secondary);
-        font-style: italic;
-    }
-    
-    .loading-indicator.active {
-        display: block;
-    }
-    
-    .loading-spinner-custom {
-        display: inline-block;
-        width: 30px;
-        height: 30px;
-        border: 3px solid var(--surface-elevated);
-        border-top: 3px solid var(--primary);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: var(--space-md);
-    }
-    
-    /* Tabs Navigation */
-    .model-tabs {
-        display: flex;
-        gap: var(--space-xs);
-        margin-bottom: var(--space-xl);
-        background: var(--surface-elevated);
-        border-radius: var(--radius-lg);
-        padding: var(--space-xs);
-        border: 1px solid var(--border);
-    }
-    
-    .model-tab {
-        flex: 1;
-        padding: var(--space-lg);
-        background: transparent;
-        border: none;
-        border-radius: var(--radius-md);
-        color: var(--text-secondary);
-        font-weight: 600;
-        cursor: pointer;
-        transition: var(--transition-base);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-sm);
-    }
-    
-    .model-tab.active {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        color: white;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .model-tab:hover:not(.active) {
-        background: var(--surface);
-    }
-    
-    /* Content Container */
-    .model-content {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        padding: var(--space-xl);
-        margin-bottom: var(--space-xl);
-        min-height: 500px;
-    }
-    
-    /* Tab Content */
-    .tab-content {
-        display: none;
-    }
-    
-    .tab-content.active {
-        display: block;
-        animation: fadeInUp 0.4s ease;
-    }
-    
-    /* Metrics Display */
-    .metrics-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--space-lg);
-        margin-bottom: var(--space-xl);
-    }
-    
-    .metric-card {
-        background: var(--surface-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: var(--space-lg);
-        text-align: center;
-        transition: var(--transition-base);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .metric-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(135deg, var(--success), var(--accent));
-        transform: scaleX(0);
-        transition: transform 0.3s ease;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .metric-card:hover::before {
-        transform: scaleX(1);
-    }
-    
-    .metric-title {
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-        margin-bottom: var(--space-sm);
-        font-weight: 600;
-    }
-    
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 800;
-        color: var(--accent);
-        font-family: var(--font-mono);
-    }
-    
-    /* Visualization Container */
-    .viz-container {
-        background: var(--surface-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: var(--space-lg);
-        text-align: center;
-        margin-bottom: var(--space-xl);
-    }
-    
-    .viz-title {
-        color: var(--text-primary);
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-bottom: var(--space-lg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-sm);
-    }
-    
-    .viz-container img {
-        max-width: 100%;
-        height: auto;
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-sm);
-        transition: var(--transition-base);
-    }
-    
-    .viz-container img:hover {
-        transform: scale(1.02);
-        box-shadow: var(--shadow-md);
-    }
-    
-    /* Correlation Section */
-    .correlation-section {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        padding: var(--space-xl);
-        margin-bottom: var(--space-xl);
-    }
-    
-    /* Dataset Info */
-    .dataset-info {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        padding: var(--space-xl);
-        margin-bottom: var(--space-xl);
-    }
-    
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: var(--space-lg);
-        margin-bottom: var(--space-xl);
-    }
-    
-    .info-item {
-        background: var(--surface-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: var(--space-lg);
-    }
-    
-    .info-label {
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        margin-bottom: var(--space-sm);
-        font-weight: 600;
-    }
-    
-    .info-value {
-        color: var(--text-primary);
-        font-weight: 600;
-        font-size: 1.1rem;
-    }
-    
-    .feature-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: var(--space-sm);
-        list-style: none;
-        padding: 0;
-        margin-top: var(--space-lg);
-    }
-    
-    .feature-list li {
-        background: var(--surface-elevated);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        padding: var(--space-sm) var(--space-md);
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-        transition: var(--transition-base);
-    }
-    
-    .feature-list li:hover {
-        background: var(--primary);
-        color: white;
-        transform: translateY(-1px);
-    }
-
-    /* --- Dark theme select / option visibility fixes --- */
-    select,
-    input[type="number"] {
-    color: var(--text-primary);
-    background: var(--surface-elevated);
-    border: 1px solid var(--border);
-    }
-
-    select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-
-    /* Native dropdown list items (options) – make them visible on dark themes */
-    select option {
-    color: var(--text-primary);        /* readable text */
-    background: var(--dark-light);     /* dark background for the list */
-    }
-
-    /* Optional: placeholder/disabled option style */
-    select option[disabled],
-    select option[value=""] {
-    color: var(--text-muted);
-    }
-
-    /* Ensure number input spinners are visible */
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: auto;
-    margin: 0;
-    }
-    input[type="number"] {
-    -moz-appearance: textfield; /* Firefox uses textfield by default; keep steppers behavior consistent */
-    }
-
-
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .slider-container {
-            flex-direction: column;
-            gap: var(--space-md);
-        }
-        
-        .lambda-slider {
-            width: 100%;
-            max-width: none;
-        }
-        
-        .current-params {
-            flex-direction: column;
-            gap: var(--space-md);
-        }
-        
-        .model-tabs {
-            flex-direction: column;
-            gap: var(--space-xs);
-        }
-        
-        .metrics-container {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        
-        .info-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .feature-list {
-            grid-template-columns: 1fr;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .metrics-container {
-            grid-template-columns: 1fr;
-        }
-        
-        .metric-value {
-            font-size: 1.5rem;
-        }
-        
-        .lambda-formula {
-            font-size: 1rem;
-            padding: var(--space-md);
-        }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'project3.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -676,13 +218,14 @@
         <!-- Core controls -->
         <div class="info-grid">
         <div class="info-item">
-            <div class="info-label">Pick instance (row index)</div>
+            <div class="info-label" data-tip="Row in the original dataset. Try 0, 5, 12, 30.">Pick instance (row index)</div>
             <input id="cf-index" type="number" min="0" step="1" value="0" class="form-control" />
             <small class="text-muted">0 = first row</small>
         </div>
 
         <div class="info-item">
-            <div class="info-label">Target label</div>
+            <div class="info-label"data-tip="Which class you want the model to predict after changes.">
+                Target label</div>
             <select id="cf-target" class="form-control">
             {% for cls in target_names %}
                 <option value="{{ cls }}">{{ cls }}</option>
@@ -691,7 +234,8 @@
         </div>
 
         <div class="info-item">
-            <div class="info-label">Model</div>
+            <div class="info-label" data-tip="Choose the model used to check/score counterfactuals.">
+                Model</div>
             <select id="cf-model" class="form-control">
             <option value="logistic">Logistic Regression</option>
             <option value="tree">Decision Tree</option>
@@ -699,7 +243,8 @@
         </div>
 
         <div class="info-item">
-            <div class="info-label">Sampling (N) / Top-k</div>
+            <div class="info-label" data-tip="N = number of local samples to try; Top-k = how many best counterfactuals to keep.">
+                Sampling (N) / Top-k</div>
             <div style="display:flex; gap: var(--space-sm);">
             <input id="cf-N" type="number" min="100" step="100" value="2000" class="input" style="max-width:120px;">
             <input id="cf-k" type="number" min="1" step="1" value="5" class="input" style="max-width:80px;">
@@ -714,7 +259,7 @@
 
         <div class="info-grid">
         <div class="info-item">
-            <div class="info-label">Immutable features (cannot change)</div>
+            <div class="info-label" data-tip="Features you cannot change (e.g., year).">Immutable features (cannot change)</div>
             <div id="cf-immutables" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
             {% for f in features %}
                 <label style="display:flex;align-items:center;gap:8px;">
@@ -725,7 +270,8 @@
         </div>
 
         <div class="info-item">
-            <div class="info-label">Only increase</div>
+            <div class="info-label" data-tip="Features allowed to move only upward from the instance value.">
+                Only increase</div>
             <div id="cf-only-inc" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
             {% for f in features %}
                 <label style="display:flex;align-items:center;gap:8px;">
@@ -736,7 +282,8 @@
         </div>
 
         <div class="info-item">
-            <div class="info-label">Only decrease</div>
+            <div class="info-label" data-tip="Features allowed to move only downward from the instance value.">
+                Only decrease</div>
             <div id="cf-only-dec" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
             {% for f in features %}
                 <label style="display:flex;align-items:center;gap:8px;">
@@ -750,14 +297,14 @@
         <!-- (Optional) Plausibility & diversity toggles — still in this one panel -->
         <div class="info-grid" style="margin-top: var(--space-md);">
         <div class="info-item">
-            <label style="display:flex;align-items:center;gap:8px;">
+            <label style="display:flex;align-items:center;gap:8px;" data-tip="Filters out points far from training data in feature space using k-NN density.">
             <input type="checkbox" id="cf-plaus" checked> Enforce plausibility (kNN density)
             </label>
             <div class="info-label" style="margin-top:8px;">Keep densest quantile</div>
             <input id="cf-dens-q" type="number" min="0" max="1" step="0.05" value="0.7" class="form-control" />
         </div>
         <div class="info-item">
-            <label style="display:flex;align-items:center;gap:8px;">
+            <label style="display:flex;align-items:center;gap:8px;" data-tip="Avoid near-duplicate counterfactuals using a minimum MAD-weighted L1 distance.">
             <input type="checkbox" id="cf-diverse" checked> Enforce diversity (min MAD-L1)
             </label>
             <div class="info-label" style="margin-top:8px;">Min MAD-L1 between CFs</div>
@@ -812,6 +359,38 @@
         button.classList.add('active');
     }
 
+    function attachTooltips(scope = document) {
+        scope.querySelectorAll('[data-tip]').forEach(el => {
+        if (el.dataset.tipInit) return; // avoid duplicates
+        el.dataset.tipInit = "1";
+        const wrapper = document.createElement('span');
+        wrapper.className = 'tooltip';
+
+        // move the label text inside wrapper
+        const label = document.createElement('span');
+        label.textContent = el.textContent;
+        el.textContent = '';
+
+        // hint icon
+        const hint = document.createElement('span');
+        hint.className = 'hint';
+        hint.setAttribute('tabindex', '0');
+        hint.setAttribute('aria-label', 'More info');
+        hint.textContent = '?';
+
+        // bubble
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = el.getAttribute('data-tip');
+
+        wrapper.appendChild(label);
+        wrapper.appendChild(hint);
+        wrapper.appendChild(bubble);
+        el.appendChild(wrapper);
+        });
+    }
+
+
     document.addEventListener('DOMContentLoaded', function() {
         // Get DOM elements
         const lambdaSlider = document.getElementById('lambda-slider');
@@ -862,6 +441,8 @@
                 updateModel(lambdaSlider.value);
             }, DEBOUNCE_DELAY);
         });
+
+        attachTooltips(document);
         
         // Model update function
         function updateModel(lambdaValue) {
@@ -1071,10 +652,6 @@
             z-index: 100;
             opacity: 0.7;
             transition: opacity 0.3s ease;
-        `;
-        shortcuts.innerHTML = `
-            <div><kbd>Ctrl+1</kbd> Decision Tree</div>
-            <div><kbd>Ctrl+2</kbd> Logistic Regression</div>
         `;
         shortcuts.addEventListener('mouseenter', () => shortcuts.style.opacity = '1');
         shortcuts.addEventListener('mouseleave', () => shortcuts.style.opacity = '0.7');
