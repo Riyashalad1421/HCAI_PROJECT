@@ -1,0 +1,545 @@
+<!-- project5/templates/project5/view_trajectories.html -->
+{% extends 'project5/base.html' %}
+
+{% block breadcrumb_extra %}
+<span class="breadcrumb-separator">></span>
+<span class="breadcrumb-current">View Trajectories</span>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <div class="page-title">
+        <i class="fas fa-chart-line"></i>
+        Trajectory Analysis
+    </div>
+    <div class="page-subtitle">
+        Analyze and compare recent training episodes to understand agent behavior and performance
+    </div>
+</div>
+
+{% if not trajectories %}
+<!-- No Trajectories -->
+<div class="training-form">
+    <div class="status-alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong>No Trajectories Found</strong><br>
+            Train a policy first to generate trajectory data for analysis.
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'project5:train_baseline' %}" class="btn-rlhf btn-primary">
+            <i class="fas fa-brain"></i>
+            Train Baseline Policy
+        </a>
+        <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Project 5
+        </a>
+    </div>
+</div>
+
+{% else %}
+<!-- Trajectory Analysis -->
+<div class="training-form">
+    <!-- Summary Statistics -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-chart-bar"></i>
+            Performance Summary
+        </div>
+        
+        <div class="results-grid">
+            <div class="result-item">
+                <div class="result-label">Total Trajectories</div>
+                <div class="result-value">{{ trajectories|length }}</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Average Reward</div>
+                <div class="result-value" style="color: {% if avg_stats.avg_reward > 0 %}var(--success){% else %}var(--warning){% endif %}">
+                    {{ avg_stats.avg_reward|floatformat:2|default:"N/A" }}
+                </div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Success Rate</div>
+                <div class="result-value" style="color: var(--success);">
+                    {{ avg_stats.success_rate|floatformat:1|default:"N/A" }}%
+                </div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Avg Episode Length</div>
+                <div class="result-value">{{ avg_stats.avg_steps|floatformat:1|default:"N/A" }}</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Cheese Collection</div>
+                <div class="result-value" style="color: var(--success);">{{ avg_stats.total_cheese|default:"N/A" }}</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Organic Preference</div>
+                <div class="result-value" style="color: var(--warning);">{{ avg_stats.organic_rate|floatformat:1|default:"N/A" }}%</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Controls -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-filter"></i>
+            Filter & Sort Options
+        </div>
+        
+        <div class="parameter-grid">
+            <div class="parameter-item">
+                <label class="parameter-label">
+                    <i class="fas fa-robot"></i>
+                    Policy Version
+                </label>
+                <select id="policyFilter" class="parameter-input" onchange="filterTrajectories()">
+                    <option value="">All Policies</option>
+                    <option value="baseline">Baseline Policy</option>
+                    <option value="rlhf">RLHF Policy</option>
+                </select>
+            </div>
+            
+            <div class="parameter-item">
+                <label class="parameter-label">
+                    <i class="fas fa-flag-checkered"></i>
+                    End Reason
+                </label>
+                <select id="endReasonFilter" class="parameter-input" onchange="filterTrajectories()">
+                    <option value="">All Endings</option>
+                    <option value="cheese">Regular Cheese</option>
+                    <option value="organic_cheese">Organic Cheese</option>
+                    <option value="trap">Hit Trap</option>
+                    <option value="max_steps">Timeout</option>
+                </select>
+            </div>
+            
+            <div class="parameter-item">
+                <label class="parameter-label">
+                    <i class="fas fa-sort"></i>
+                    Sort By
+                </label>
+                <select id="sortOrder" class="parameter-input" onchange="sortTrajectories()">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="reward_high">Highest Reward</option>
+                    <option value="reward_low">Lowest Reward</option>
+                    <option value="steps_short">Shortest Episodes</option>
+                    <option value="steps_long">Longest Episodes</option>
+                </select>
+            </div>
+            
+            <div class="parameter-item">
+                <label class="parameter-label">
+                    <i class="fas fa-eye"></i>
+                    Show Per Page
+                </label>
+                <select id="itemsPerPage" class="parameter-input" onchange="updatePagination()">
+                    <option value="5">5 trajectories</option>
+                    <option value="10" selected>10 trajectories</option>
+                    <option value="20">20 trajectories</option>
+                    <option value="50">50 trajectories</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trajectories Table -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-table"></i>
+            Trajectory Details
+            <div style="margin-left: auto; font-size: 0.9rem; color: var(--text-muted);">
+                Showing <span id="showingCount">{{ trajectories|length }}</span> of {{ trajectories|length }} trajectories
+            </div>
+        </div>
+        
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: var(--surface-elevated);">
+                        <tr>
+                            <th style="padding: var(--space-md); text-align: left; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="sortByColumn('id')">
+                                <i class="fas fa-hashtag" style="margin-right: var(--space-xs);"></i>
+                                Trajectory ID
+                                <i class="fas fa-sort" style="margin-left: var(--space-xs); opacity: 0.5; font-size: 0.8rem;"></i>
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="sortByColumn('reward')">
+                                <i class="fas fa-award" style="margin-right: var(--space-xs);"></i>
+                                Reward
+                                <i class="fas fa-sort" style="margin-left: var(--space-xs); opacity: 0.5; font-size: 0.8rem;"></i>
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="sortByColumn('steps')">
+                                <i class="fas fa-footprints" style="margin-right: var(--space-xs);"></i>
+                                Steps
+                                <i class="fas fa-sort" style="margin-left: var(--space-xs); opacity: 0.5; font-size: 0.8rem;"></i>
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border);">
+                                <i class="fas fa-cookie" style="margin-right: var(--space-xs); color: var(--success);"></i>
+                                Regular
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border);">
+                                <i class="fas fa-leaf" style="margin-right: var(--space-xs); color: var(--warning);"></i>
+                                Organic
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border);">
+                                <i class="fas fa-bomb" style="margin-right: var(--space-xs); color: var(--error);"></i>
+                                Traps
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="sortByColumn('end_reason')">
+                                <i class="fas fa-flag" style="margin-right: var(--space-xs);"></i>
+                                End Reason
+                                <i class="fas fa-sort" style="margin-left: var(--space-xs); opacity: 0.5; font-size: 0.8rem;"></i>
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="sortByColumn('policy')">
+                                <i class="fas fa-robot" style="margin-right: var(--space-xs);"></i>
+                                Policy
+                                <i class="fas fa-sort" style="margin-left: var(--space-xs); opacity: 0.5; font-size: 0.8rem;"></i>
+                            </th>
+                            <th style="padding: var(--space-md); text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="sortByColumn('created')">
+                                <i class="fas fa-clock" style="margin-right: var(--space-xs);"></i>
+                                Created
+                                <i class="fas fa-sort" style="margin-left: var(--space-xs); opacity: 0.5; font-size: 0.8rem;"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="trajectoryTableBody">
+                        {% for traj in trajectories %}
+                        <tr class="trajectory-row" style="border-bottom: 1px solid var(--border); transition: background-color 0.3s ease;"
+                            data-policy="{{ traj.policy_version }}" 
+                            data-end-reason="{{ traj.end_reason }}" 
+                            data-reward="{{ traj.total_reward }}"
+                            data-steps="{{ traj.total_steps }}"
+                            data-created="{{ traj.created_at|date:'U' }}"
+                            onmouseover="this.style.backgroundColor='var(--surface-elevated)'" 
+                            onmouseout="this.style.backgroundColor='transparent'">
+                            
+                            <td style="padding: var(--space-md); color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.9rem;">
+                                {{ traj.trajectory_id|slice:":8" }}...
+                                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    ID: {{ traj.id }}
+                                </div>
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center;">
+                                <span style="font-weight: 700; color: {% if traj.total_reward > 5 %}var(--success){% elif traj.total_reward > 0 %}var(--warning){% else %}var(--error){% endif %};">
+                                    {{ traj.total_reward|floatformat:1 }}
+                                </span>
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center; color: var(--text-secondary); font-weight: 600;">
+                                {{ traj.total_steps }}
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center;">
+                                {% if traj.cheese_collected > 0 %}
+                                    <span style="background: var(--success); color: white; padding: 4px 8px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.8rem;">
+                                        {{ traj.cheese_collected }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted);">0</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center;">
+                                {% if traj.organic_cheese_collected > 0 %}
+                                    <span style="background: var(--warning); color: white; padding: 4px 8px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.8rem;">
+                                        {{ traj.organic_cheese_collected }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted);">0</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center;">
+                                {% if traj.traps_hit > 0 %}
+                                    <span style="background: var(--error); color: white; padding: 4px 8px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.8rem;">
+                                        {{ traj.traps_hit }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted);">0</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center;">
+                                <span style="padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600;
+                                    {% if traj.end_reason == 'cheese' %}background: rgba(16, 185, 129, 0.1); color: var(--success);{% elif traj.end_reason == 'organic_cheese' %}background: rgba(245, 158, 11, 0.1); color: var(--warning);{% elif traj.end_reason == 'trap' %}background: rgba(239, 68, 68, 0.1); color: var(--error);{% else %}background: var(--surface-elevated); color: var(--text-muted);{% endif %}">
+                                    {{ traj.end_reason|title|default:"Unknown" }}
+                                </span>
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center;">
+                                <span style="padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600;
+                                    {% if 'rlhf' in traj.policy_version|lower %}background: rgba(99, 102, 241, 0.1); color: var(--primary);{% else %}background: var(--surface-elevated); color: var(--text-secondary);{% endif %}">
+                                    {% if 'rlhf' in traj.policy_version|lower %}
+                                        <i class="fas fa-graduation-cap" style="margin-right: 4px;"></i>RLHF
+                                    {% else %}
+                                        <i class="fas fa-robot" style="margin-right: 4px;"></i>Baseline
+                                    {% endif %}
+                                </span>
+                            </td>
+                            
+                            <td style="padding: var(--space-md); text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+                                {{ traj.created_at|date:"m/d H:i" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination (if needed) -->
+            <div id="paginationControls" style="padding: var(--space-lg); background: var(--surface-elevated); text-align: center; border-top: 1px solid var(--border);">
+                <button class="btn-rlhf btn-secondary" onclick="previousPage()" style="margin-right: var(--space-md);">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <span id="pageInfo" style="color: var(--text-secondary); margin: 0 var(--space-lg);">Page 1 of 1</span>
+                <button class="btn-rlhf btn-secondary" onclick="nextPage()" style="margin-left: var(--space-md);">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'project5:collect_feedback' %}" class="btn-rlhf btn-primary">
+            <i class="fas fa-comments"></i>
+            Collect Feedback
+        </a>
+        <a href="{% url 'project5:train_rlhf' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-graduation-cap"></i>
+            Train RLHF
+        </a>
+        <a href="{% url 'project5:train_baseline' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-brain"></i>
+            Train Baseline
+        </a>
+        <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-home"></i>
+            Back to Project 5
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Trajectory filtering and sorting functionality
+let currentPage = 1;
+let itemsPerPage = 10;
+let allRows = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    allRows = Array.from(document.querySelectorAll('.trajectory-row'));
+    updatePagination();
+});
+
+function filterTrajectories() {
+    const policyFilter = document.getElementById('policyFilter').value.toLowerCase();
+    const endReasonFilter = document.getElementById('endReasonFilter').value.toLowerCase();
+    
+    const filteredRows = allRows.filter(row => {
+        const policy = row.dataset.policy.toLowerCase();
+        const endReason = row.dataset.endReason.toLowerCase();
+        
+        const policyMatch = !policyFilter || policy.includes(policyFilter);
+        const endReasonMatch = !endReasonFilter || endReason === endReasonFilter;
+        
+        return policyMatch && endReasonMatch;
+    });
+    
+    displayRows(filteredRows);
+    currentPage = 1;
+    updatePageInfo(filteredRows.length);
+}
+
+function sortTrajectories() {
+    const sortOrder = document.getElementById('sortOrder').value;
+    
+    const sortedRows = [...allRows].sort((a, b) => {
+        switch(sortOrder) {
+            case 'newest':
+                return parseInt(b.dataset.created) - parseInt(a.dataset.created);
+            case 'oldest':
+                return parseInt(a.dataset.created) - parseInt(b.dataset.created);
+            case 'reward_high':
+                return parseFloat(b.dataset.reward) - parseFloat(a.dataset.reward);
+            case 'reward_low':
+                return parseFloat(a.dataset.reward) - parseFloat(b.dataset.reward);
+            case 'steps_short':
+                return parseInt(a.dataset.steps) - parseInt(b.dataset.steps);
+            case 'steps_long':
+                return parseInt(b.dataset.steps) - parseInt(a.dataset.steps);
+            default:
+                return 0;
+        }
+    });
+    
+    allRows = sortedRows;
+    filterTrajectories(); // Reapply filters
+}
+
+function displayRows(rows) {
+    const tbody = document.getElementById('trajectoryTableBody');
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    // Hide all rows
+    allRows.forEach(row => {
+        row.style.display = 'none';
+    });
+    
+    // Show selected rows
+    const rowsToShow = rows.slice(startIndex, endIndex);
+    rowsToShow.forEach(row => {
+        row.style.display = 'table-row';
+    });
+    
+    document.getElementById('showingCount').textContent = rowsToShow.length;
+}
+
+function updatePagination() {
+    itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
+    currentPage = 1;
+    filterTrajectories();
+}
+
+function updatePageInfo(totalItems) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+    
+    // Update button states
+    const prevBtn = document.querySelector('button[onclick="previousPage()"]');
+    const nextBtn = document.querySelector('button[onclick="nextPage()"]');
+    
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        filterTrajectories();
+    }
+}
+
+function nextPage() {
+    const visibleRows = allRows.filter(row => row.style.display !== 'none');
+    const totalPages = Math.ceil(visibleRows.length / itemsPerPage);
+    
+    if (currentPage < totalPages) {
+        currentPage++;
+        filterTrajectories();
+    }
+}
+
+function sortByColumn(column) {
+    const sortOrder = document.getElementById('sortOrder');
+    const currentSort = sortOrder.value;
+    
+    // Toggle sort direction or set new sort
+    switch(column) {
+        case 'reward':
+            sortOrder.value = currentSort === 'reward_high' ? 'reward_low' : 'reward_high';
+            break;
+        case 'steps':
+            sortOrder.value = currentSort === 'steps_short' ? 'steps_long' : 'steps_short';
+            break;
+        case 'created':
+            sortOrder.value = currentSort === 'newest' ? 'oldest' : 'newest';
+            break;
+        default:
+            sortOrder.value = 'newest';
+    }
+    
+    sortTrajectories();
+}
+
+// Add row click functionality for detailed view
+document.querySelectorAll('.trajectory-row').forEach(row => {
+    row.addEventListener('click', function() {
+        const trajectoryId = this.querySelector('td').textContent.replace('...', '').trim();
+        showTrajectoryDetails(trajectoryId);
+    });
+    
+    row.style.cursor = 'pointer';
+    row.title = 'Click to view detailed trajectory information';
+});
+
+function showTrajectoryDetails(trajectoryId) {
+    // Create modal or detailed view
+    showNotification(`Detailed view for trajectory ${trajectoryId} - Feature coming soon!`, 'info');
+}
+
+// Export functionality
+function exportTrajectories() {
+    const visibleRows = allRows.filter(row => row.style.display !== 'none');
+    let csv = 'Trajectory ID,Reward,Steps,Cheese,Organic,Traps,End Reason,Policy,Created\n';
+    
+    visibleRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const data = Array.from(cells).map(cell => {
+            return cell.textContent.replace(/\n/g, ' ').trim();
+        }).join(',');
+        csv += data + '\n';
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trajectories.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    showNotification('Trajectory data exported successfully!', 'success');
+}
+
+// Add export button
+document.addEventListener('DOMContentLoaded', function() {
+    const actionButtons = document.querySelector('.action-buttons');
+    if (actionButtons) {
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'btn-rlhf btn-secondary';
+        exportBtn.innerHTML = '<i class="fas fa-download"></i> Export CSV';
+        exportBtn.onclick = exportTrajectories;
+        actionButtons.insertBefore(exportBtn, actionButtons.lastElementChild);
+    }
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'f':
+                    e.preventDefault();
+                    document.getElementById('policyFilter').focus();
+                    break;
+                case 's':
+                    e.preventDefault();
+                    document.getElementById('sortOrder').focus();
+                    break;
+                case 'e':
+                    e.preventDefault();
+                    exportTrajectories();
+                    break;
+            }
+        }
+        
+        // Page navigation
+        if (e.key === 'ArrowLeft' && e.shiftKey) {
+            previousPage();
+        } else if (e.key === 'ArrowRight' && e.shiftKey) {
+            nextPage();
+        }
+    });
+    
+    // Show keyboard shortcuts hint
+    setTimeout(() => {
+        showNotification('💡 Shortcuts: Ctrl+F (filter), Ctrl+S (sort), Ctrl+E (export), Shift+← → (pages)', 'info', 5000);
+    }, 1000);
+});
+</script>
+{% endblock %}

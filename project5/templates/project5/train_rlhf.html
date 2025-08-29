@@ -1,0 +1,407 @@
+<!-- project5/templates/project5/train_rlhf.html -->
+{% extends 'project5/base.html' %}
+
+{% block breadcrumb_extra %}
+<span class="breadcrumb-separator">></span>
+<span class="breadcrumb-current">Train RLHF</span>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <div class="page-title">
+        <i class="fas fa-user-graduate"></i>
+        Reinforcement Learning with Human Feedback
+    </div>
+    <div class="page-subtitle">
+        Train an advanced policy that incorporates human preferences using the Bradley-Terry reward model
+    </div>
+</div>
+
+{% if feedback_count < 5 %}
+<!-- Insufficient Feedback -->
+<div class="training-form">
+    <div class="status-alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong>Insufficient Human Feedback</strong><br>
+            You need at least 5 feedback pairs to train RLHF effectively. Current feedback: <strong>{{ feedback_count }} pairs</strong><br>
+            Collect more human preferences to improve training quality.
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'project5:collect_feedback' %}" class="btn-rlhf btn-primary">
+            <i class="fas fa-comments"></i>
+            Collect More Feedback
+        </a>
+        <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Project 5
+        </a>
+    </div>
+</div>
+
+{% elif not results %}
+<!-- RLHF Training Form -->
+<div class="training-form">
+    <form method="post" id="rlhfForm">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-database"></i>
+                Available Training Data
+            </div>
+            
+            <div class="results-grid">
+                <div class="result-item">
+                    <div class="result-label">Human Feedback Pairs</div>
+                    <div class="result-value" style="color: var(--success);">{{ feedback_count }}</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Trajectory Samples</div>
+                    <div class="result-value">{{ trajectory_count|default:"N/A" }}</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Training Quality</div>
+                    <div class="result-value" style="color: {% if feedback_count >= 20 %}var(--success){% elif feedback_count >= 10 %}var(--warning){% else %}var(--error){% endif %}">
+                        {% if feedback_count >= 20 %}Excellent{% elif feedback_count >= 10 %}Good{% else %}Fair{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-cog"></i>
+                RLHF Training Parameters
+            </div>
+            
+            <div class="parameter-grid">
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-brain"></i>
+                        Reward Model Epochs
+                    </label>
+                    <input type="number" name="reward_epochs" value="50" min="10" max="200" class="parameter-input" required>
+                    <div class="parameter-help">Training epochs for Bradley-Terry reward model (recommended: 30-100)</div>
+                </div>
+                
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-repeat"></i>
+                        Policy Episodes
+                    </label>
+                    <input type="number" name="episodes" value="100" min="10" max="500" class="parameter-input" required>
+                    <div class="parameter-help">Policy training episodes with learned rewards (recommended: 50-200)</div>
+                </div>
+                
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-balance-scale"></i>
+                        KL Penalty Weight
+                    </label>
+                    <input type="number" name="kl_weight" value="0.1" step="0.01" min="0.01" max="1.0" class="parameter-input">
+                    <div class="parameter-help">Penalty for deviating from baseline policy (prevents reward hacking)</div>
+                </div>
+                
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-chart-line"></i>
+                        Learning Rate
+                    </label>
+                    <input type="number" name="learning_rate" value="0.0005" step="0.0001" min="0.0001" max="0.01" class="parameter-input">
+                    <div class="parameter-help">Lower than baseline for stable RLHF training (recommended: 0.0005)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-info-circle"></i>
+                RLHF Process Overview
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-lg);">
+                <div class="status-alert alert-info">
+                    <i class="fas fa-trophy"></i>
+                    <div>
+                        <strong>Step 1: Reward Learning</strong><br>
+                        Train a neural network to predict human preferences using the Bradley-Terry model:
+                        <code style="display: block; margin-top: 8px; padding: 8px; background: var(--surface-elevated); border-radius: 4px;">
+                            P(A > B) = σ(r(A) - r(B))
+                        </code>
+                    </div>
+                </div>
+                
+                <div class="status-alert alert-success">
+                    <i class="fas fa-robot"></i>
+                    <div>
+                        <strong>Step 2: Policy Optimization</strong><br>
+                        Update the policy using learned rewards while maintaining similarity to the baseline with KL divergence penalty.
+                    </div>
+                </div>
+                
+                <div class="status-alert alert-warning">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <strong>Step 3: Safety Measures</strong><br>
+                        The KL penalty prevents the policy from exploiting reward model weaknesses (reward hacking).
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button type="submit" class="btn-rlhf btn-primary">
+                <i class="fas fa-rocket"></i>
+                Start RLHF Training
+            </button>
+            <a href="{% url 'project5:collect_feedback' %}" class="btn-rlhf btn-secondary">
+                <i class="fas fa-comments"></i>
+                Collect More Feedback
+            </a>
+            <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Project 5
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Training Progress (initially hidden) -->
+<div id="rlhfProgress" style="display: none;">
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-cog fa-spin"></i>
+            RLHF Training in Progress
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="rlhfProgressFill"></div>
+            </div>
+            <div class="progress-text" id="rlhfProgressText">Initializing RLHF training...</div>
+        </div>
+        
+        <div id="trainingSteps" style="margin-top: var(--space-lg);">
+            <div class="status-alert alert-info" id="currentStep">
+                <i class="fas fa-info-circle"></i>
+                <span>Preparing training data...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- RLHF Training Results -->
+<div class="results-container">
+    <div class="results-header">
+        <div class="results-title">
+            <i class="fas fa-graduation-cap" style="color: var(--success);"></i>
+            RLHF Training Complete!
+        </div>
+        <div class="status-alert alert-success">
+            <i class="fas fa-star"></i>
+            <span>The RLHF policy has been successfully trained with human feedback and saved to the database.</span>
+        </div>
+    </div>
+    
+    <div class="results-grid">
+        <div class="result-item">
+            <div class="result-label">Human Feedback Used</div>
+            <div class="result-value" style="color: var(--success);">{{ results.feedback_count }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Reward Model Epochs</div>
+            <div class="result-value">{{ results.reward_epochs }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Policy Episodes</div>
+            <div class="result-value">{{ results.episodes }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Final Average Reward</div>
+            <div class="result-value" style="color: {% if results.avg_reward > results.baseline_reward|default:0 %}var(--success){% else %}var(--warning){% endif %}">
+                {{ results.avg_reward }}
+            </div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Average Steps</div>
+            <div class="result-value">{{ results.avg_steps }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Regular Cheese Rate</div>
+            <div class="result-value" style="color: var(--success);">{{ results.cheese_rate }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Organic Cheese Rate</div>
+            <div class="result-value" style="color: var(--warning);">{{ results.organic_rate }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Session ID</div>
+            <div class="result-value" style="font-size: 1rem;">{{ results.session_id }}</div>
+        </div>
+    </div>
+    
+    <!-- Performance Comparison -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-chart-bar"></i>
+            RLHF vs Baseline Comparison
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl);">
+            <div class="trajectory-card">
+                <div class="trajectory-header">
+                    <i class="fas fa-robot"></i>
+                    Baseline Policy (Pre-RLHF)
+                </div>
+                <div class="trajectory-stats">
+                    <div class="trajectory-stat">
+                        <div class="trajectory-stat-label">Avg Reward</div>
+                        <div class="trajectory-stat-value">{{ results.baseline_reward|default:"N/A" }}</div>
+                    </div>
+                    <div class="trajectory-stat">
+                        <div class="trajectory-stat-label">Organic Cheese</div>
+                        <div class="trajectory-stat-value" style="color: var(--error);">{{ results.baseline_organic|default:"N/A" }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="trajectory-card" style="border-color: var(--success);">
+                <div class="trajectory-header">
+                    <i class="fas fa-graduation-cap"></i>
+                    RLHF Policy (Human-Trained)
+                </div>
+                <div class="trajectory-stats">
+                    <div class="trajectory-stat">
+                        <div class="trajectory-stat-label">Avg Reward</div>
+                        <div class="trajectory-stat-value" style="color: var(--success);">{{ results.avg_reward }}</div>
+                    </div>
+                    <div class="trajectory-stat">
+                        <div class="trajectory-stat-label">Organic Cheese</div>
+                        <div class="trajectory-stat-value" style="color: var(--success);">{{ results.organic_rate }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-alert {% if results.organic_rate < results.baseline_organic|default:1 %}alert-success{% else %}alert-warning{% endif %}">
+            <i class="fas {% if results.organic_rate < results.baseline_organic|default:1 %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+            <div>
+                <strong>Training Impact:</strong><br>
+                {% if results.organic_rate < results.baseline_organic|default:1 %}
+                    🎉 Excellent! The RLHF policy successfully learned to avoid organic cheese based on human feedback.
+                    The agent now demonstrates behavior that aligns better with human preferences.
+                {% else %}
+                    The policy shows some improvement but may benefit from additional feedback or training. 
+                    Consider collecting more diverse human preferences.
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'project5:view_trajectories' %}" class="btn-rlhf btn-primary">
+            <i class="fas fa-chart-line"></i>
+            Compare Trajectories
+        </a>
+        <a href="{% url 'project5:collect_feedback' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-comments"></i>
+            Collect More Feedback
+        </a>
+        <a href="{% url 'project5:train_rlhf' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-redo"></i>
+            Train Again
+        </a>
+        <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-home"></i>
+            Back to Project 5
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('rlhfForm');
+    const progressDiv = document.getElementById('rlhfProgress');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Show progress
+            if (progressDiv) {
+                progressDiv.style.display = 'block';
+                simulateRLHFProgress();
+            }
+            
+            showLoading('Starting RLHF training...');
+        });
+    }
+    
+    function simulateRLHFProgress() {
+        let progress = 0;
+        const progressFill = document.getElementById('rlhfProgressFill');
+        const progressText = document.getElementById('rlhfProgressText');
+        const currentStep = document.getElementById('currentStep');
+        
+        const steps = [
+            { threshold: 10, text: 'Loading human feedback data...', step: 'Preparing Bradley-Terry training data...' },
+            { threshold: 25, text: 'Training reward model...', step: 'Learning human preferences with neural network...' },
+            { threshold: 45, text: 'Validating reward model...', step: 'Testing reward model accuracy...' },
+            { threshold: 60, text: 'Initializing RLHF policy training...', step: 'Setting up policy gradient with learned rewards...' },
+            { threshold: 80, text: 'Running RLHF episodes...', step: 'Training policy with KL penalty...' },
+            { threshold: 95, text: 'Saving RLHF model...', step: 'Storing trained policy in database...' },
+            { threshold: 100, text: 'RLHF training complete!', step: '✅ Human feedback successfully integrated!' }
+        ];
+        
+        let currentStepIndex = 0;
+        
+        const interval = setInterval(() => {
+            progress += Math.random() * 3;
+            if (progress > 100) progress = 100;
+            
+            if (progressFill) progressFill.style.width = progress + '%';
+            
+            // Update step information
+            const currentStepData = steps[currentStepIndex];
+            if (progress >= currentStepData.threshold && currentStepIndex < steps.length - 1) {
+                if (progressText) progressText.textContent = currentStepData.text;
+                if (currentStep) {
+                    const icon = currentStepIndex === steps.length - 1 ? 'fa-check-circle' : 'fa-cog fa-spin';
+                    const alertType = currentStepIndex === steps.length - 1 ? 'alert-success' : 'alert-info';
+                    currentStep.className = `status-alert ${alertType}`;
+                    currentStep.innerHTML = `<i class="fas ${icon}"></i><span>${currentStepData.step}</span>`;
+                }
+                currentStepIndex++;
+            }
+            
+            if (progress >= 100) {
+                clearInterval(interval);
+                if (progressText) progressText.textContent = 'Training complete! Processing results...';
+            }
+        }, 300);
+    }
+    
+    // Add tooltip information for parameters
+    const parameterItems = document.querySelectorAll('.parameter-item');
+    parameterItems.forEach(item => {
+        const input = item.querySelector('input');
+        const label = item.querySelector('.parameter-label');
+        
+        if (input && label) {
+            input.addEventListener('focus', function() {
+                item.style.borderColor = 'var(--primary)';
+                item.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+            });
+            
+            input.addEventListener('blur', function() {
+                item.style.borderColor = 'var(--border)';
+                item.style.boxShadow = 'none';
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

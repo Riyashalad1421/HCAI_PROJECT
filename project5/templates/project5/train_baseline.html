@@ -1,0 +1,257 @@
+<!-- project5/templates/project5/train_baseline.html -->
+{% extends 'project5/base.html' %}
+
+{% block breadcrumb_extra %}
+<span class="breadcrumb-separator">></span>
+<span class="breadcrumb-current">Train Baseline</span>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <div class="page-title">
+        <i class="fas fa-brain"></i>
+        Train Baseline Policy
+    </div>
+    <div class="page-subtitle">
+        Train the initial mouse navigation policy using the REINFORCE algorithm with environmental rewards
+    </div>
+</div>
+
+{% if not results %}
+<!-- Training Form -->
+<div class="training-form">
+    <form method="post" id="trainingForm">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-cog"></i>
+                Training Parameters
+            </div>
+            
+            <div class="parameter-grid">
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-repeat"></i>
+                        Training Episodes
+                    </label>
+                    <input type="number" name="episodes" value="200" min="10" max="1000" class="parameter-input" required>
+                    <div class="parameter-help">Number of episodes to train (recommended: 100-500)</div>
+                </div>
+                
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-chart-line"></i>
+                        Learning Rate
+                    </label>
+                    <input type="number" name="learning_rate" value="0.001" step="0.0001" min="0.0001" max="0.1" class="parameter-input" required>
+                    <div class="parameter-help">Policy gradient learning rate (recommended: 0.001-0.01)</div>
+                </div>
+                
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-calculator"></i>
+                        Discount Factor (γ)
+                    </label>
+                    <input type="number" name="gamma" value="0.99" step="0.01" min="0.8" max="0.99" class="parameter-input">
+                    <div class="parameter-help">Future reward discount factor (default: 0.99)</div>
+                </div>
+                
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-clock"></i>
+                        Max Steps per Episode
+                    </label>
+                    <input type="number" name="max_steps" value="100" min="20" max="500" class="parameter-input">
+                    <div class="parameter-help">Maximum steps before episode timeout (default: 100)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-info-circle"></i>
+                Training Information
+            </div>
+            
+            <div class="status-alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Baseline Training Process:</strong><br>
+                    The mouse will learn to navigate using only environmental rewards:
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>+10 reward for collecting regular cheese (C)</li>
+                        <li>+10 reward for collecting organic cheese (O)</li>
+                        <li>-50 reward for hitting traps (T)</li>
+                        <li>-0.2 reward per step (encourages efficiency)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button type="submit" class="btn-rlhf btn-primary">
+                <i class="fas fa-play"></i>
+                Start Baseline Training
+            </button>
+            <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Project 5
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Training Progress (initially hidden) -->
+<div id="trainingProgress" style="display: none;">
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Initializing training...</div>
+    </div>
+</div>
+
+{% else %}
+<!-- Training Results -->
+<div class="results-container">
+    <div class="results-header">
+        <div class="results-title">
+            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+            Baseline Training Complete!
+        </div>
+        <div class="status-alert alert-success">
+            <i class="fas fa-trophy"></i>
+            <span>The baseline policy has been successfully trained and saved to the database.</span>
+        </div>
+    </div>
+    
+    <div class="results-grid">
+        <div class="result-item">
+            <div class="result-label">Training Episodes</div>
+            <div class="result-value">{{ results.episodes }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Average Reward</div>
+            <div class="result-value" style="color: {% if results.avg_reward > 0 %}var(--success){% else %}var(--warning){% endif %}">
+                {{ results.avg_reward }}
+            </div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Average Steps</div>
+            <div class="result-value">{{ results.avg_steps }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Cheese Collection Rate</div>
+            <div class="result-value" style="color: var(--success);">{{ results.cheese_rate }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Organic Cheese Rate</div>
+            <div class="result-value" style="color: var(--warning);">{{ results.organic_rate }}</div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Session ID</div>
+            <div class="result-value" style="font-size: 1rem;">{{ results.session_id }}</div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-chart-bar"></i>
+            Performance Analysis
+        </div>
+        
+        <div class="status-alert alert-info">
+            <i class="fas fa-lightbulb"></i>
+            <div>
+                <strong>Training Insights:</strong><br>
+                {% if results.avg_reward > 5 %}
+                    Excellent performance! The agent learned to collect cheese efficiently.
+                {% elif results.avg_reward > 0 %}
+                    Good performance! The agent shows positive learning progress.
+                {% else %}
+                    The agent is still learning. Consider training for more episodes or adjusting hyperparameters.
+                {% endif %}
+                
+                {% if results.organic_rate > results.cheese_rate %}
+                    <br><strong>Note:</strong> The agent currently prefers organic cheese. This is where human feedback will be valuable!
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'project5:collect_feedback' %}" class="btn-rlhf btn-primary">
+            <i class="fas fa-comments"></i>
+            Collect Human Feedback
+        </a>
+        <a href="{% url 'project5:view_trajectories' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-chart-line"></i>
+            View Trajectories
+        </a>
+        <a href="{% url 'project5:train_baseline' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-redo"></i>
+            Train Again
+        </a>
+        <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-home"></i>
+            Back to Project 5
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('trainingForm');
+    const progressDiv = document.getElementById('trainingProgress');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Show progress bar
+            if (progressDiv) {
+                progressDiv.style.display = 'block';
+                simulateTrainingProgress();
+            }
+            
+            // Show loading overlay
+            showLoading('Training baseline policy...');
+        });
+    }
+    
+    function simulateTrainingProgress() {
+        let progress = 0;
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        
+        const interval = setInterval(() => {
+            progress += Math.random() * 5;
+            if (progress > 100) progress = 100;
+            
+            if (progressFill) progressFill.style.width = progress + '%';
+            
+            if (progressText) {
+                if (progress < 20) {
+                    progressText.textContent = 'Initializing neural network...';
+                } else if (progress < 40) {
+                    progressText.textContent = 'Running training episodes...';
+                } else if (progress < 70) {
+                    progressText.textContent = 'Computing policy gradients...';
+                } else if (progress < 90) {
+                    progressText.textContent = 'Saving model to database...';
+                } else {
+                    progressText.textContent = 'Finalizing training session...';
+                }
+            }
+            
+            if (progress >= 100) {
+                clearInterval(interval);
+                if (progressText) {
+                    progressText.textContent = 'Training complete! Redirecting...';
+                }
+            }
+        }, 200);
+    }
+});
+</script>
+{% endblock %}

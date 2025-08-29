@@ -1,0 +1,335 @@
+<!-- project5/templates/project5/collect_feedback.html -->
+{% extends 'project5/base.html' %}
+
+{% block breadcrumb_extra %}
+<span class="breadcrumb-separator">></span>
+<span class="breadcrumb-current">Collect Feedback</span>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <div class="page-title">
+        <i class="fas fa-comments"></i>
+        Human Feedback Collection
+    </div>
+    <div class="page-subtitle">
+        Compare trajectory pairs and provide preferences to improve the agent's policy through human guidance
+    </div>
+</div>
+
+{% if not trajectories or trajectories|length < 2 %}
+<!-- Insufficient Trajectories -->
+<div class="training-form">
+    <div class="status-alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong>Insufficient Training Data</strong><br>
+            You need at least 2 trajectories to collect feedback. Please train the baseline policy first to generate trajectory data.
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'project5:train_baseline' %}" class="btn-rlhf btn-primary">
+            <i class="fas fa-brain"></i>
+            Train Baseline Policy
+        </a>
+        <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Project 5
+        </a>
+    </div>
+</div>
+
+{% else %}
+<!-- Feedback Collection Interface -->
+<div class="training-form">
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-chart-bar"></i>
+            Feedback Progress
+        </div>
+        
+        <div class="status-alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <strong>Feedback Collected:</strong> {{ feedback_count }} pairs<br>
+                Compare these trajectories and select which one demonstrates better behavior. 
+                Focus on avoiding organic cheese (O) while collecting regular cheese (C).
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trajectory Comparison -->
+    <div class="trajectory-comparison">
+        <!-- Trajectory A -->
+        <div class="trajectory-card" id="trajectoryA">
+            <div class="trajectory-header">
+                <i class="fas fa-route"></i>
+                Trajectory A
+                <small style="color: var(--text-muted);">({{ traj_a.trajectory_id|slice:":8" }}...)</small>
+            </div>
+            
+            <div class="trajectory-stats">
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Total Reward</div>
+                    <div class="trajectory-stat-value" style="color: {% if traj_a.total_reward > 0 %}var(--success){% else %}var(--warning){% endif %}">
+                        {{ traj_a.total_reward|floatformat:1 }}
+                    </div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Steps</div>
+                    <div class="trajectory-stat-value">{{ traj_a.total_steps }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Regular Cheese</div>
+                    <div class="trajectory-stat-value" style="color: var(--success);">{{ traj_a.cheese_collected }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Organic Cheese</div>
+                    <div class="trajectory-stat-value" style="color: var(--warning);">{{ traj_a.organic_cheese_collected }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Traps Hit</div>
+                    <div class="trajectory-stat-value" style="color: var(--error);">{{ traj_a.traps_hit }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">End Reason</div>
+                    <div class="trajectory-stat-value">{{ traj_a.end_reason|title }}</div>
+                </div>
+            </div>
+            
+            <div class="trajectory-grid" id="gridA">
+                {{ states_a_html|safe }}
+            </div>
+        </div>
+        
+        <!-- Trajectory B -->
+        <div class="trajectory-card" id="trajectoryB">
+            <div class="trajectory-header">
+                <i class="fas fa-route"></i>
+                Trajectory B
+                <small style="color: var(--text-muted);">({{ traj_b.trajectory_id|slice:":8" }}...)</small>
+            </div>
+            
+            <div class="trajectory-stats">
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Total Reward</div>
+                    <div class="trajectory-stat-value" style="color: {% if traj_b.total_reward > 0 %}var(--success){% else %}var(--warning){% endif %}">
+                        {{ traj_b.total_reward|floatformat:1 }}
+                    </div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Steps</div>
+                    <div class="trajectory-stat-value">{{ traj_b.total_steps }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Regular Cheese</div>
+                    <div class="trajectory-stat-value" style="color: var(--success);">{{ traj_b.cheese_collected }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Organic Cheese</div>
+                    <div class="trajectory-stat-value" style="color: var(--warning);">{{ traj_b.organic_cheese_collected }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">Traps Hit</div>
+                    <div class="trajectory-stat-value" style="color: var(--error);">{{ traj_b.traps_hit }}</div>
+                </div>
+                <div class="trajectory-stat">
+                    <div class="trajectory-stat-label">End Reason</div>
+                    <div class="trajectory-stat-value">{{ traj_b.end_reason|title }}</div>
+                </div>
+            </div>
+            
+            <div class="trajectory-grid" id="gridB">
+                {{ states_b_html|safe }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Feedback Form -->
+    <div class="feedback-section">
+        <form id="feedbackForm">
+            {% csrf_token %}
+            <input type="hidden" name="trajectory_a_id" value="{{ traj_a.trajectory_id }}">
+            <input type="hidden" name="trajectory_b_id" value="{{ traj_b.trajectory_id }}">
+            
+            <div class="feedback-title">
+                <i class="fas fa-hand-pointer"></i>
+                Which trajectory demonstrates better behavior?
+            </div>
+            
+            <div class="feedback-buttons">
+                <button type="button" onclick="submitFeedback('A')" class="feedback-btn feedback-positive">
+                    <i class="fas fa-thumbs-up"></i>
+                    Prefer Trajectory A
+                </button>
+                <button type="button" onclick="submitFeedback('B')" class="feedback-btn feedback-negative">
+                    <i class="fas fa-thumbs-up"></i>
+                    Prefer Trajectory B
+                </button>
+            </div>
+            
+            <!-- Additional Feedback Options -->
+            <div style="margin-top: var(--space-xl); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);">
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-star"></i>
+                        Confidence Level
+                    </label>
+                    <select name="confidence" class="parameter-input">
+                        <option value="1">1 - Not sure</option>
+                        <option value="2">2 - Slightly confident</option>
+                        <option value="3" selected>3 - Moderately confident</option>
+                        <option value="4">4 - Very confident</option>
+                        <option value="5">5 - Extremely confident</option>
+                    </select>
+                </div>
+                
+                <div class="parameter-item">
+                    <label class="parameter-label">
+                        <i class="fas fa-comment"></i>
+                        Reason (Optional)
+                    </label>
+                    <textarea name="reason" rows="3" class="parameter-input" 
+                              placeholder="Why do you prefer this trajectory? Consider cheese collection, trap avoidance, efficiency, etc."></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Guidelines -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fas fa-lightbulb"></i>
+            Evaluation Guidelines
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-md);">
+            <div class="status-alert alert-success" style="margin-bottom: 0;">
+                <i class="fas fa-check"></i>
+                <div>
+                    <strong>Prefer trajectories that:</strong>
+                    <ul style="margin: 5px 0 0 20px; font-size: 0.9rem;">
+                        <li>Collect regular cheese (C)</li>
+                        <li>Avoid traps (T)</li>
+                        <li>Use fewer steps</li>
+                        <li>Show strategic movement</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="status-alert alert-warning" style="margin-bottom: 0;">
+                <i class="fas fa-times"></i>
+                <div>
+                    <strong>Avoid trajectories that:</strong>
+                    <ul style="margin: 5px 0 0 20px; font-size: 0.9rem;">
+                        <li>Prefer organic cheese (O)</li>
+                        <li>Hit many traps (T)</li>
+                        <li>Wander aimlessly</li>
+                        <li>Take too many steps</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="action-buttons">
+        <a href="{% url 'project5:train_rlhf' %}" class="btn-rlhf btn-primary">
+            <i class="fas fa-brain"></i>
+            Train with RLHF
+        </a>
+        <a href="{% url 'project5:view_trajectories' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-chart-line"></i>
+            View All Trajectories
+        </a>
+        <a href="{% url 'project5:index' %}" class="btn-rlhf btn-secondary">
+            <i class="fas fa-home"></i>
+            Back to Project 5
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function submitFeedback(preferred) {
+    showLoading('Saving feedback...');
+    
+    const form = document.getElementById('feedbackForm');
+    const formData = new FormData(form);
+    formData.append('preferred', preferred);
+    
+    // Add visual feedback
+    const preferredCard = preferred === 'A' ? 
+        document.getElementById('trajectoryA') : 
+        document.getElementById('trajectoryB');
+    
+    preferredCard.style.borderColor = 'var(--success)';
+    preferredCard.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.3)';
+    
+    fetch('{% url "project5:collect_feedback" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        
+        if (data.success) {
+            showNotification('Feedback saved successfully! Loading next pair...', 'success', 2000);
+            
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+            
+            // Reset visual feedback
+            preferredCard.style.borderColor = 'var(--border)';
+            preferredCard.style.boxShadow = 'var(--shadow-md)';
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        console.error('Error:', error);
+        showNotification('Network error occurred', 'error');
+        
+        // Reset visual feedback
+        preferredCard.style.borderColor = 'var(--border)';
+        preferredCard.style.boxShadow = 'var(--shadow-md)';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects for trajectory cards
+    const trajectoryCards = document.querySelectorAll('.trajectory-card');
+    
+    trajectoryCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+            this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(-4px)';
+            this.style.boxShadow = 'var(--shadow-lg)';
+        });
+    });
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '1' || e.key === 'a' || e.key === 'A') {
+            submitFeedback('A');
+        } else if (e.key === '2' || e.key === 'b' || e.key === 'B') {
+            submitFeedback('B');
+        }
+    });
+    
+    // Show keyboard shortcuts hint
+    showNotification('💡 Tip: Use keys "A" or "B" for quick selection!', 'info', 3000);
+});
+</script>
+{% endblock %}
