@@ -199,7 +199,7 @@ django-cors-headers==4.2.0
 # ================================
 
 # All versions are tested and compatible as of August 2024
-# For Python 3.8+ compatibility
+# For Python 3.12.0+ compatibility
 # Some packages may have newer versions available - update as needed
 # 
 # Critical dependencies for each project:
