@@ -43,7 +43,7 @@ HCAI-PBL/
 1. **Clone the repository**
 ```bash
 git clone <repository-url>
-cd HCAI-PBL
+cd HCAI_PROJECT
 ```
 
 2. **Create and activate virtual environment**
