@@ -555,11 +555,25 @@ def project4_download_pdf(request):
     return response
 
 def project4_feedback_review(request):
-    feedbacks = Feedback.objects.all().order_by('-id')
-    return render(request, 'project4/feedback_review.html', {
+    """Enhanced feedback review with proper context"""
+    feedbacks = Feedback.objects.all().order_by('-submitted_at')
+    
+    # Calculate statistics for the template
+    total_submissions = feedbacks.count()
+    very_helpful_count = feedbacks.filter(helpfulness='very_helpful').count()
+    somewhat_helpful_count = feedbacks.filter(helpfulness='somewhat_helpful').count()
+    not_helpful_count = feedbacks.filter(helpfulness='not_helpful').count()
+    
+    context = {
         'feedbacks': feedbacks,
+        'total_submissions': total_submissions,
+        'very_helpful_count': very_helpful_count,
+        'somewhat_helpful_count': somewhat_helpful_count,
+        'not_helpful_count': not_helpful_count,
         'page_title': "Feedback Review"
-    })
+    }
+    
+    return render(request, 'project4/feedback_review.html', context)
 
 
 def project4_export_feedback(request):
@@ -591,7 +605,7 @@ def project4_export_feedback(request):
 
 def project4_analytics(request):
     """
-    Analytics dashboard for Project 4 - Movie Recommender Study
+    Enhanced analytics dashboard with proper context data
     """
     try:
         # Get all feedback data
@@ -600,17 +614,17 @@ def project4_analytics(request):
         
         # Calculate helpfulness statistics
         helpfulness_counts = {}
-        for feedback in feedbacks:
-            helpfulness = feedback.helpfulness
-            helpfulness_counts[helpfulness] = helpfulness_counts.get(helpfulness, 0) + 1
+        helpfulness_counts['very_helpful'] = feedbacks.filter(helpfulness='very_helpful').count()
+        helpfulness_counts['somewhat_helpful'] = feedbacks.filter(helpfulness='somewhat_helpful').count()
+        helpfulness_counts['not_helpful'] = feedbacks.filter(helpfulness='not_helpful').count()
         
         # Most popular movies (movies that were tested most)
-        movie_counts = {}
-        for feedback in feedbacks:
-            movie = feedback.movie_title
-            movie_counts[movie] = movie_counts.get(movie, 0) + 1
+        from django.db.models import Count
+        movie_counts = feedbacks.values('movie_title').annotate(
+            count=Count('movie_title')
+        ).order_by('-count')[:5]
         
-        popular_movies = sorted(movie_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        popular_movies = [(item['movie_title'], item['count']) for item in movie_counts]
         
         # Recent activity
         recent_feedback = feedbacks.order_by('-submitted_at')[:10]
@@ -624,11 +638,16 @@ def project4_analytics(request):
         }
         
     except Exception as e:
+        logger.error(f"Error in analytics view: {str(e)}")
         # Fallback context if there are any issues (e.g., no database entries yet)
         context = {
             'page_title': 'Project 4 Analytics',
             'total_submissions': 0,
-            'helpfulness_counts': {},
+            'helpfulness_counts': {
+                'very_helpful': 0,
+                'somewhat_helpful': 0,
+                'not_helpful': 0
+            },
             'popular_movies': [],
             'recent_feedback': [],
             'error': str(e)
