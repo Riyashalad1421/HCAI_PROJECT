@@ -5,7 +5,7 @@
 ```bash
 # Clone repository
 git clone <repository-url>
-cd HCAI-PBL
+cd HCAI_PROJECT
 
 # Setup environment
 python -m venv venv
@@ -23,7 +23,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-**Access**: http://127.0.0.1:8000/home/
+**Access**: http://127.0.0.1:8000/
 
 ## Required Datasets
 
