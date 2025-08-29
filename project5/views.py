@@ -18,7 +18,7 @@ from .policy_network import PolicyNetwork
 trainer = ReinforceTrainer()
 
 def project5_landing(request):
-    """Modern landing page for Project 5 with RLHF interface"""
+    """Modern landing page for Project 5 with RLHF interface - keep existing functionality"""
     
     try:
         # Get database statistics
@@ -68,19 +68,20 @@ def project5_landing(request):
         }
         return render(request, 'project5/index.html', context)
 
-# Keep all your existing functions exactly as they are
 @csrf_exempt
 def train_baseline(request):
-    """Train baseline policy using REINFORCE"""
+    """Enhanced train baseline with modern UI"""
     if request.method == 'POST':
         try:
             # Get training parameters
             num_episodes = int(request.POST.get('episodes', 200))
             learning_rate = float(request.POST.get('learning_rate', 0.001))
+            gamma = float(request.POST.get('gamma', 0.99))
+            max_steps = int(request.POST.get('max_steps', 100))
             
-            # Initialize trainer
+            # Initialize trainer with custom parameters
             global trainer
-            trainer = ReinforceTrainer(learning_rate=learning_rate)
+            trainer = ReinforceTrainer(learning_rate=learning_rate, gamma=gamma, max_steps=max_steps)
             
             # Train baseline policy
             trajectories, session = trainer.train_policy(
@@ -95,48 +96,32 @@ def train_baseline(request):
             cheese_rate = np.mean([t['cheese_collected'] for t in trajectories])
             organic_rate = np.mean([t['organic_cheese_collected'] for t in trajectories])
             
-            return HttpResponse(f"""
-            <h1>Baseline Training Complete!</h1>
-            <h3>Training Results:</h3>
-            <ul>
-                <li><strong>Episodes:</strong> {num_episodes}</li>
-                <li><strong>Average Reward:</strong> {avg_reward:.2f}</li>
-                <li><strong>Average Steps:</strong> {avg_steps:.1f}</li>
-                <li><strong>Cheese Collection Rate:</strong> {cheese_rate:.2f}</li>
-                <li><strong>Organic Cheese Rate:</strong> {organic_rate:.2f}</li>
-                <li><strong>Session ID:</strong> {session.session_id[:8]}...</li>
-            </ul>
-            <p>The baseline policy has been trained and saved. Now you can collect human feedback!</p>
-            <a href="/project5/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Back to Project 5</a>
-            <a href="/project5/collect-feedback/" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">Collect Feedback</a>
-            """)
+            # Prepare results for template
+            results = {
+                'episodes': num_episodes,
+                'avg_reward': round(avg_reward, 2),
+                'avg_steps': round(avg_steps, 1),
+                'cheese_rate': round(cheese_rate, 2),
+                'organic_rate': round(organic_rate, 2),
+                'session_id': session.session_id[:8] + '...'
+            }
+            
+            return render(request, 'project5/train_baseline.html', {'results': results})
             
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
-            return HttpResponse(f"""
-            <h2>Training Error:</h2>
-            <p>{str(e)}</p>
-            <details><summary>Full Error</summary><pre>{error_details}</pre></details>
-            <a href='/project5/'>Back</a>
-            """)
+            return render(request, 'project5/train_baseline.html', {
+                'error': str(e),
+                'error_details': error_details
+            })
     
     # Show training form
-    return HttpResponse("""
-    <h1>Train Baseline Policy</h1>
-    <form method="post">
-        <h3>Training Parameters:</h3>
-        <p><label>Episodes: <input type="number" name="episodes" value="200" min="10" max="1000"></label></p>
-        <p><label>Learning Rate: <input type="number" name="learning_rate" value="0.001" step="0.0001" min="0.0001" max="0.1"></label></p>
-        <button type="submit" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px;">Start Training</button>
-    </form>
-    <p><em>This will train the mouse using REINFORCE algorithm. Training may take a few minutes...</em></p>
-    <a href="/project5/">Back to Project 5</a>
-    """)
+    return render(request, 'project5/train_baseline.html')
 
 @csrf_exempt
 def collect_feedback(request):
-    """Interface for collecting human feedback on trajectory pairs"""
+    """Enhanced feedback collection with modern UI"""
     if request.method == 'POST':
         try:
             # Process submitted feedback
@@ -168,165 +153,69 @@ def collect_feedback(request):
     trajectories = list(Trajectory.objects.all().order_by('?')[:2])
     
     if len(trajectories) < 2:
-        return HttpResponse("""
-        <h1>Need More Trajectories</h1>
-        <p>You need at least 2 trajectories to collect feedback. Please train the baseline policy first.</p>
-        <a href="/project5/train-baseline/">Train Baseline Policy</a>
-        <a href="/project5/">Back to Project 5</a>
-        """)
+        return render(request, 'project5/collect_feedback.html', {
+            'trajectories': []
+        })
     
     traj_a, traj_b = trajectories[0], trajectories[1]
     
-    # Get trajectory details
-    def get_trajectory_states(traj_id):
-        states = GameState.objects.filter(trajectory_id=traj_id).order_by('step_number')
-        return [state.get_grid() for state in states]
-    
-    def render_trajectory(traj, states):
-        symbols = {0: '.', 1: 'M', 2: 'C', 3: 'T', 4: '#', 5: 'O'}
-        html = f"""
-        <div style="border: 2px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
-            <h4>Trajectory {traj.trajectory_id[:8]}...</h4>
-            <p><strong>Stats:</strong> Reward: {traj.total_reward:.1f}, Steps: {traj.total_steps}, 
-               Cheese: {traj.cheese_collected}, Organic: {traj.organic_cheese_collected}, 
-               Traps: {traj.traps_hit}</p>
-            <p><strong>End Reason:</strong> {traj.end_reason}</p>
-            <div style="font-family: monospace; font-size: 12px;">
-        """
+    # Get trajectory states and render them
+    def get_trajectory_states_html(traj_id):
+        states = GameState.objects.filter(trajectory_id=traj_id).order_by('step_number')[:5]  # Show first 5 steps
+        symbols = {0: '·', 1: '🐭', 2: '🧀', 3: '💣', 4: '🧱', 5: '🥬'}
         
-        # Show first few states
-        for i, state in enumerate(states[:5]):
-            html += f"<p><strong>Step {i}:</strong></p><pre>"
-            for row in state:
-                html += ' '.join(symbols[cell] for cell in row) + '\n'
-            html += "</pre>"
-            if i < len(states) - 1:
-                html += "<br>"
+        html = ""
+        for i, state in enumerate(states):
+            html += f"<div style='margin-bottom: 8px;'><strong>Step {i}:</strong></div>"
+            grid = state.get_grid()
+            for row in grid:
+                html += ''.join(symbols.get(cell, '?') for cell in row) + '<br>'
+            html += "<br>"
         
-        if len(states) > 5:
-            html += f"<p><em>... and {len(states) - 5} more steps</em></p>"
+        if len(states) < 5:
+            html += f"<em style='color: var(--text-muted);'>... episode ended after {len(states)} steps</em>"
+        else:
+            html += "<em style='color: var(--text-muted);'>... and more steps</em>"
         
-        html += "</div></div>"
         return html
     
-    states_a = get_trajectory_states(traj_a.trajectory_id)
-    states_b = get_trajectory_states(traj_b.trajectory_id)
+    states_a_html = get_trajectory_states_html(traj_a.trajectory_id)
+    states_b_html = get_trajectory_states_html(traj_b.trajectory_id)
     feedback_count = HumanFeedback.objects.count()
     
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Human Feedback Collection</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            .trajectory {{ display: inline-block; width: 45%; vertical-align: top; }}
-            .button {{ padding: 10px 20px; margin: 5px; color: white; text-decoration: none; border: none; border-radius: 4px; cursor: pointer; }}
-            .btn-success {{ background-color: #28a745; }}
-            .btn-primary {{ background-color: #007bff; }}
-            .feedback-form {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
-        </style>
-        <script>
-        function submitFeedback(preferred) {{
-            const form = document.getElementById('feedbackForm');
-            const formData = new FormData(form);
-            formData.append('preferred', preferred);
-            
-            fetch('/project5/collect-feedback/', {{
-                method: 'POST',
-                body: formData
-            }})
-            .then(response => response.json())
-            .then(data => {{
-                if (data.success) {{
-                    alert('Feedback saved! Loading next pair...');
-                    location.reload();
-                }} else {{
-                    alert('Error: ' + data.error);
-                }}
-            }})
-            .catch(error => {{
-                console.error('Error:', error);
-                alert('Network error occurred');
-            }});
-        }}
-        </script>
-    </head>
-    <body>
-        <h1>Human Feedback Collection</h1>
-        <p><strong>Feedback Collected:</strong> {feedback_count} pairs</p>
-        <p><em>Compare these two trajectories and select which one you prefer. Consider avoiding organic cheese (O) as the goal.</em></p>
-        
-        <div style="display: flex; gap: 20px;">
-            <div class="trajectory">
-                <h3>Trajectory A</h3>
-                {render_trajectory(traj_a, states_a)}
-            </div>
-            <div class="trajectory">
-                <h3>Trajectory B</h3>
-                {render_trajectory(traj_b, states_b)}
-            </div>
-        </div>
-        
-        <div class="feedback-form">
-            <form id="feedbackForm">
-                <input type="hidden" name="trajectory_a_id" value="{traj_a.trajectory_id}">
-                <input type="hidden" name="trajectory_b_id" value="{traj_b.trajectory_id}">
-                
-                <h3>Which trajectory do you prefer?</h3>
-                <button type="button" onclick="submitFeedback('A')" class="button btn-success">Prefer Trajectory A</button>
-                <button type="button" onclick="submitFeedback('B')" class="button btn-success">Prefer Trajectory B</button>
-                
-                <p><label>Confidence (1-5):
-                <select name="confidence">
-                    <option value="1">1 - Not sure</option>
-                    <option value="2">2 - Slightly confident</option>
-                    <option value="3" selected>3 - Moderately confident</option>
-                    <option value="4">4 - Very confident</option>
-                    <option value="5">5 - Extremely confident</option>
-                </select>
-                </label></p>
-                
-                <p><label>Reason (optional):<br>
-                <textarea name="reason" rows="3" cols="60" placeholder="Why do you prefer this trajectory? Consider cheese collection, avoiding organic cheese, trap avoidance, etc."></textarea>
-                </label></p>
-            </form>
-        </div>
-        
-        <p><strong>Guidelines:</strong></p>
-        <ul>
-            <li>Prefer trajectories that collect regular cheese (C) over organic cheese (O)</li>
-            <li>Prefer trajectories that avoid traps (T)</li>
-            <li>Prefer efficient paths (fewer steps)</li>
-            <li>The goal is to train the mouse to avoid organic cheese via human feedback</li>
-        </ul>
-        
-        <hr>
-        <a href="/project5/" class="button btn-primary">Back to Project 5</a>
-        <a href="/project5/train-rlhf/" class="button btn-primary">Train with RLHF</a>
-    </body>
-    </html>
-    """
+    context = {
+        'trajectories': trajectories,
+        'traj_a': traj_a,
+        'traj_b': traj_b,
+        'states_a_html': states_a_html,
+        'states_b_html': states_b_html,
+        'feedback_count': feedback_count
+    }
     
-    return HttpResponse(html_content)
+    return render(request, 'project5/collect_feedback.html', context)
 
 @csrf_exempt
 def train_rlhf(request):
-    """Train policy using RLHF with collected human feedback"""
+    """Enhanced RLHF training with modern UI"""
+    feedback_count = HumanFeedback.objects.count()
+    trajectory_count = Trajectory.objects.count()
+    
     if request.method == 'POST':
         try:
             # Get training parameters
             num_episodes = int(request.POST.get('episodes', 100))
             reward_epochs = int(request.POST.get('reward_epochs', 50))
+            kl_weight = float(request.POST.get('kl_weight', 0.1))
+            learning_rate = float(request.POST.get('learning_rate', 0.0005))
             
             # Get human feedback data
             feedback_entries = HumanFeedback.objects.all()
             if len(feedback_entries) < 5:
-                return HttpResponse(f"""
-                <h2>Insufficient Feedback</h2>
-                <p>You need at least 5 feedback entries to train RLHF. Current: {len(feedback_entries)}</p>
-                <a href="/project5/collect-feedback/">Collect More Feedback</a>
-                """)
+                return render(request, 'project5/train_rlhf.html', {
+                    'feedback_count': feedback_count,
+                    'trajectory_count': trajectory_count,
+                    'insufficient_feedback': True
+                })
             
             # Prepare feedback data for training
             feedback_data = []
@@ -343,8 +232,12 @@ def train_rlhf(request):
                     'preference': 1 if fb.preferred_trajectory == 'A' else 0
                 })
             
-            # Enable RLHF mode
+            # Initialize trainer with custom parameters
             global trainer
+            trainer = ReinforceTrainer(learning_rate=learning_rate)
+            trainer.kl_penalty_weight = kl_weight
+            
+            # Enable RLHF mode
             trainer.enable_rlhf()
             
             # Train reward model
@@ -363,104 +256,106 @@ def train_rlhf(request):
             cheese_rate = np.mean([t['cheese_collected'] for t in trajectories])
             organic_rate = np.mean([t['organic_cheese_collected'] for t in trajectories])
             
-            return HttpResponse(f"""
-            <h1>RLHF Training Complete!</h1>
-            <h3>Training Results:</h3>
-            <ul>
-                <li><strong>Feedback Used:</strong> {len(feedback_data)} pairs</li>
-                <li><strong>Reward Training Epochs:</strong> {reward_epochs}</li>
-                <li><strong>Policy Episodes:</strong> {num_episodes}</li>
-                <li><strong>Average Reward:</strong> {avg_reward:.2f}</li>
-                <li><strong>Average Steps:</strong> {avg_steps:.1f}</li>
-                <li><strong>Cheese Collection Rate:</strong> {cheese_rate:.2f}</li>
-                <li><strong>Organic Cheese Rate:</strong> {organic_rate:.2f}</li>
-                <li><strong>Session ID:</strong> {session.session_id[:8]}...</li>
-            </ul>
-            <p>The RLHF policy should now prefer regular cheese over organic cheese based on human feedback!</p>
-            <a href="/project5/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Back to Project 5</a>
-            """)
+            # Get baseline comparison (last baseline session)
+            baseline_sessions = TrainingSession.objects.filter(training_type='baseline').order_by('-start_time')
+            baseline_reward = None
+            baseline_organic = None
+            
+            if baseline_sessions:
+                baseline_reward = baseline_sessions[0].current_average_reward
+                # Get organic rate from baseline trajectories
+                baseline_trajectories = Trajectory.objects.filter(
+                    policy_version__icontains='baseline'
+                ).order_by('-created_at')[:20]
+                if baseline_trajectories:
+                    baseline_organic = np.mean([t.organic_cheese_collected for t in baseline_trajectories])
+            
+            # Prepare results for template
+            results = {
+                'feedback_count': len(feedback_data),
+                'reward_epochs': reward_epochs,
+                'episodes': num_episodes,
+                'avg_reward': round(avg_reward, 2),
+                'avg_steps': round(avg_steps, 1),
+                'cheese_rate': round(cheese_rate, 2),
+                'organic_rate': round(organic_rate, 2),
+                'session_id': session.session_id[:8] + '...',
+                'baseline_reward': round(baseline_reward, 2) if baseline_reward else None,
+                'baseline_organic': round(baseline_organic, 2) if baseline_organic else None
+            }
+            
+            return render(request, 'project5/train_rlhf.html', {
+                'results': results,
+                'feedback_count': feedback_count,
+                'trajectory_count': trajectory_count
+            })
             
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
-            return HttpResponse(f"""
-            <h2>RLHF Training Error:</h2>
-            <p>{str(e)}</p>
-            <details><summary>Full Error</summary><pre>{error_details}</pre></details>
-            <a href='/project5/'>Back</a>
-            """)
+            return render(request, 'project5/train_rlhf.html', {
+                'error': str(e),
+                'error_details': error_details,
+                'feedback_count': feedback_count,
+                'trajectory_count': trajectory_count
+            })
     
     # Show RLHF training form
-    feedback_count = HumanFeedback.objects.count()
-    return HttpResponse(f"""
-    <h1>Train with Human Feedback (RLHF)</h1>
-    <p><strong>Available Feedback:</strong> {feedback_count} pairs</p>
-    <form method="post">
-        <h3>RLHF Training Parameters:</h3>
-        <p><label>Reward Model Epochs: <input type="number" name="reward_epochs" value="50" min="10" max="200"></label></p>
-        <p><label>Policy Episodes: <input type="number" name="episodes" value="100" min="10" max="500"></label></p>
-        <button type="submit" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 4px;">Start RLHF Training</button>
-    </form>
-    
-    <h3>RLHF Process:</h3>
-    <ol>
-        <li><strong>Bradley-Terry Model:</strong> Learn reward function from human preferences</li>
-        <li><strong>Policy Update:</strong> Train policy using learned rewards</li>
-        <li><strong>KL Penalty:</strong> Keep policy close to baseline to prevent reward hacking</li>
-    </ol>
-    
-    <p><em>This will use the Bradley-Terry model to learn rewards from human feedback, then retrain the policy.</em></p>
-    <a href="/project5/">Back to Project 5</a>
-    <a href="/project5/collect-feedback/">Collect More Feedback</a>
-    """)
+    return render(request, 'project5/train_rlhf.html', {
+        'feedback_count': feedback_count,
+        'trajectory_count': trajectory_count
+    })
 
 def view_trajectories(request):
-    """View recent trajectories and their statistics"""
+    """Enhanced trajectory viewer with modern UI"""
     
-    trajectories = Trajectory.objects.all().order_by('-created_at')[:10]
+    trajectories = Trajectory.objects.all().order_by('-created_at')
     
     if not trajectories:
-        return HttpResponse("""
-        <h1>No Trajectories Found</h1>
-        <p>Train a policy first to generate trajectories.</p>
-        <a href="/project5/train-baseline/">Train Baseline</a>
-        <a href="/project5/">Back to Project 5</a>
-        """)
+        return render(request, 'project5/view_trajectories.html', {
+            'trajectories': []
+        })
     
-    html_content = """
-    <h1>Recent Trajectories</h1>
-    <table border="1" style="border-collapse: collapse; width: 100%;">
-        <tr style="background: #f0f0f0;">
-            <th>ID</th><th>Reward</th><th>Steps</th><th>Cheese</th><th>Organic</th><th>Traps</th><th>End Reason</th><th>Policy</th><th>Created</th>
-        </tr>
-    """
+    # Calculate aggregate statistics
+    total_trajectories = len(trajectories)
+    if total_trajectories > 0:
+        avg_reward = sum(t.total_reward for t in trajectories) / total_trajectories
+        avg_steps = sum(t.total_steps for t in trajectories) / total_trajectories
+        total_cheese = sum(t.cheese_collected for t in trajectories)
+        total_organic = sum(t.organic_cheese_collected for t in trajectories)
+        
+        # Success rate: episodes that collected cheese vs hit traps
+        successful_episodes = sum(1 for t in trajectories 
+                                if t.end_reason in ['cheese', 'organic_cheese'])
+        success_rate = (successful_episodes / total_trajectories) * 100 if total_trajectories else 0
+        
+        # Organic preference rate
+        organic_rate = (total_organic / (total_cheese + total_organic)) * 100 if (total_cheese + total_organic) > 0 else 0
+        
+        avg_stats = {
+            'avg_reward': avg_reward,
+            'avg_steps': avg_steps,
+            'success_rate': success_rate,
+            'total_cheese': total_cheese,
+            'organic_rate': organic_rate
+        }
+    else:
+        avg_stats = {}
     
-    for traj in trajectories:
-        html_content += f"""
-        <tr>
-            <td>{traj.trajectory_id[:8]}...</td>
-            <td>{traj.total_reward:.1f}</td>
-            <td>{traj.total_steps}</td>
-            <td>{traj.cheese_collected}</td>
-            <td>{traj.organic_cheese_collected}</td>
-            <td>{traj.traps_hit}</td>
-            <td>{traj.end_reason}</td>
-            <td>{traj.policy_version}</td>
-            <td>{traj.created_at.strftime('%m/%d %H:%M')}</td>
-        </tr>
-        """
+    # Limit to recent trajectories for display (can be paginated)
+    display_trajectories = trajectories[:50]  # Show last 50
     
-    html_content += """
-    </table>
-    <br>
-    <a href="/project5/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Back to Project 5</a>
-    """
+    context = {
+        'trajectories': display_trajectories,
+        'avg_stats': avg_stats,
+        'total_count': total_trajectories
+    }
     
-    return HttpResponse(html_content)
+    return render(request, 'project5/view_trajectories.html', context)
 
 # Keep all your existing test functions exactly as they are
 def test_environment_direct(request):
-    """Direct test of the environment (for debugging)"""
+    """Direct test of the environment (for debugging) - keep existing"""
     try:
         import io
         import sys
@@ -504,7 +399,7 @@ def test_environment_direct(request):
         """)
 
 def test_models(request):
-    """Test database models by creating and retrieving sample data"""
+    """Test database models by creating and retrieving sample data - keep existing"""
     try:
         trajectory_id = str(uuid.uuid4())
         
