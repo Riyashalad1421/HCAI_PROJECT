@@ -302,7 +302,7 @@ python manage.py migrate
 
 ### System Requirements
 - **Operating System**: Windows 10+, macOS 10.15+, or Linux
-- **Python**: 3.8 or higher
+- **Python**: 3.12.0 or higher
 - **Memory**: 4GB RAM minimum, 8GB recommended
 - **Storage**: 2GB free space for datasets and models
 - **Browser**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
@@ -343,4 +343,3 @@ For technical issues or questions about the implementation, refer to:
 ---
 
 **Note**: This is a comprehensive academic project demonstrating multiple aspects of human-centric AI. Each component is designed to be both educational and practically applicable to real-world AI system development.
-<img width="451" height="688" alt="image" src="https://github.com/user-attachments/assets/5545b0f1-3b4d-4aec-b6dd-9116b84faa23" />
