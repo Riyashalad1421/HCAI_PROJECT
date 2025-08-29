@@ -5,4 +5,6 @@ app_name = 'project3'
 urlpatterns = [
     path('', views.index, name='index'),
     path('update_model/', views.update_model, name='update_model'),
+    path('counterfactuals/', views.counterfactuals, name='counterfactuals'),
+
 ] 
