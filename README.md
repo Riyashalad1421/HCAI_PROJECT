@@ -84,9 +84,9 @@ Navigate to `http://127.0.0.1:8000/` in your web browser.
 **URL**: `/project1/`
 
 An end-to-end supervised learning interface allowing users to:
-- Upload CSV datasets 
+- Upload the IRIS csv dataset
 - Visualize data with interactive plots
-- Train multiple ML models (classification/regression)
+- Train multiple ML models (classification models for this project)
 - Compare model performance with hyperparameter tuning
 - Export results and trained models
 
