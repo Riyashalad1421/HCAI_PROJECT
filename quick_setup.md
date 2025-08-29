@@ -47,7 +47,7 @@ python manage.py runserver
 - **Project 5 - RL+HF**: `/project5/`
 
 ## System Requirements
-- Python 3.8+
+- Python 3.12.0+
 - 4GB RAM minimum
 - Modern web browser
 
