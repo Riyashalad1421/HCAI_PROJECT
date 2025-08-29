@@ -186,7 +186,7 @@ pip install torch torchvision numpy matplotlib
 
 1. **Project 1: IRIS DATASET**
    - Download from: Project 1 Folder
-   - Place in: `project2/89d88c5528513adc4002a1618ce2efb0_iris.csv/`
+   - Place in: `project1/89d88c5528513adc4002a1618ce2efb0_iris.csv/`
 
 2. **Project 2: IMDB Reviews**
    - Download from: https://ai.stanford.edu/~amaas/data/sentiment/
