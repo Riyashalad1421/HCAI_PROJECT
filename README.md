@@ -25,7 +25,7 @@ HCAI-PBL/
 ├── temp_sessions/                 # Temporary session data
 ├── templates/                     # Shared HTML templates
 ├── manage.py                      # Django management script
-├── quick_setup.md                 # Django management script
+├── quick_setup.md                 # Quick Setup Guide for Instructor
 ├── README.md                      # This documentation
 └── requirements.txt               # All project dependencies
 ```
