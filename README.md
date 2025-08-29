@@ -8,21 +8,27 @@
 
 This repository contains five comprehensive Django applications demonstrating various aspects of human-centric AI, from automated machine learning interfaces to reinforcement learning with human feedback. Each project emphasizes user interaction, transparency, and human-centered design principles in AI systems.
 
-## Projects Structure
+## Repository Structure
 
 ```
 HCAI-PBL/
+├── demos/                         # Demo applications and examples
 ├── home/                          # Landing page and navigation
+├── media/                         # User-uploaded files and generated content
+├── pbl/                           # Main Django project configuration
 ├── project1/                      # Automated Machine Learning Interface
-├── project2/                      # Active Learning for Text Classification  
+├── project2/                      # Active Learning for Text Classification
 ├── project3/                      # Explainability and Interpretability
 ├── project4/                      # Recommender Systems with User Study
 ├── project5/                      # Reinforcement Learning with Human Feedback
-├── static/                        # Global CSS and assets
+├── static/                        # Global CSS, JavaScript, and assets
+├── temp_sessions/                 # Temporary session data
 ├── templates/                     # Shared HTML templates
+├── .gitignore                     # Git ignore configuration
+├── db.sqlite3                     # SQLite database (auto-generated)
 ├── manage.py                      # Django management script
-├── requirements.txt               # All project dependencies
-└── README.md                      # This file
+├── README.md                      # This documentation
+└── requirements.txt               # All project dependencies
 ```
 
 ## Quick Start
