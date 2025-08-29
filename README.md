@@ -24,8 +24,6 @@ HCAI-PBL/
 ├── static/                        # Global CSS, JavaScript, and assets
 ├── temp_sessions/                 # Temporary session data
 ├── templates/                     # Shared HTML templates
-├── .gitignore                     # Git ignore configuration
-├── db.sqlite3                     # SQLite database (auto-generated)
 ├── manage.py                      # Django management script
 ├── README.md                      # This documentation
 └── requirements.txt               # All project dependencies
