@@ -1,7 +1,7 @@
 # Human-Centric Artificial Intelligence - Project Portfolio
 
 **Course**: Human-Centric Artificial Intelligence  
-**Academic Year**: 2024-2025  
+**Semester**: SoSe 25  
 **Framework**: Django Web Applications
 
 ## Repository Overview
