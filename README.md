@@ -84,9 +84,9 @@ Navigate to `http://127.0.0.1:8000/` in your web browser.
 **URL**: `/project1/`
 
 An end-to-end supervised learning interface allowing users to:
-- Upload CSV datasets 
+- Upload the IRIS csv dataset
 - Visualize data with interactive plots
-- Train multiple ML models (classification/regression)
+- Train multiple ML models (classification models for this project)
 - Compare model performance with hyperparameter tuning
 - Export results and trained models
 
@@ -186,7 +186,7 @@ pip install torch torchvision numpy matplotlib
 
 1. **Project 1: IRIS DATASET**
    - Download from: Project 1 Folder
-   - Place in: `project2/89d88c5528513adc4002a1618ce2efb0_iris.csv/`
+   - Place in: `project1/89d88c5528513adc4002a1618ce2efb0_iris.csv/`
 
 2. **Project 2: IMDB Reviews**
    - Download from: https://ai.stanford.edu/~amaas/data/sentiment/
