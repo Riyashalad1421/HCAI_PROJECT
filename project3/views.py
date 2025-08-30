@@ -80,15 +80,22 @@ def index(request):
     importance_plot = plot_feature_importance(tree_model, feature_names)
 
     # ------------------- Logistic Regression (stable) -------------------
-    C_value = max(0.001, 1.0 / lambda_value)
+    # Map λ∈[0,1] -> C∈[1e-3, 1e3] on a log scale (big sweep)
+    lam01 = float(np.clip(lambda_value, 0.0, 1.0))
+    logC_min, logC_max = -3.0, 3.0           # 1e-3 to 1e3
+    logC = logC_min + (1 - lam01) * (logC_max - logC_min)
+    C_value = 10 ** logC
+
     logistic_model = LogisticRegression(
         penalty='l1',
         solver='saga',
         C=C_value,
-        max_iter=5000,     # ↑ avoid convergence noise
+        max_iter=5000,
         tol=1e-4,
         random_state=42
+        # multi_class='multinomial'  # be explicit & stable
     )
+
     logistic_model.fit(X_train, y_train)
 
     logistic_y_pred = logistic_model.predict(X_test)
@@ -179,7 +186,12 @@ def update_model(request):
         importance_plot = plot_feature_importance(tree_model, feature_names)
 
         # ---------------- Logistic Regression (stable) ----------------
-        C_value = max(0.001, 1.0 / lambda_value)
+        # Map λ∈[0,1] -> C∈[1e-3, 1e3] on a log scale (big sweep)
+        lam01 = float(np.clip(lambda_value, 0.0, 1.0))
+        logC_min, logC_max = -3.0, 3.0           # 1e-3 to 1e3
+        logC = logC_min + (1 - lam01) * (logC_max - logC_min)
+        C_value = 10 ** logC
+
         logistic_model = LogisticRegression(
             penalty='l1',
             solver='saga',
@@ -187,7 +199,9 @@ def update_model(request):
             max_iter=5000,
             tol=1e-4,
             random_state=42
+            # multi_class='multinomial'  # be explicit & stable
         )
+
         logistic_model.fit(X_train, y_train)
 
         logistic_y_pred = logistic_model.predict(X_test)

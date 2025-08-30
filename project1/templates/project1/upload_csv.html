@@ -5,7 +5,6 @@
 
 {% block extra_css %}
 <style>
-    /* Project 1 Specific Styles */
     .upload-section {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -456,6 +455,45 @@
     }
     }
 
+        /* ===== Lightweight tooltips for parameter labels ===== */
+    .param-group label { display:flex; align-items:center; gap:8px; }
+
+    .param-tip {
+    position: relative; display:inline-flex; align-items:center;
+    }
+    .param-tip .hint {
+    width:18px; height:18px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700;
+    background: var(--surface); color: var(--text-secondary);
+    border:1px solid var(--border);
+    cursor: help;
+    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+    }
+    .param-tip .hint:hover,
+    .param-tip .hint:focus { transform: translateY(-1px); background: var(--surface-elevated); border-color: var(--primary); }
+
+    .param-tip .bubble {
+    position:absolute; left: 0; top: calc(100% + 8px);
+    max-width: 420px; min-width: 260px;
+    background:#0b0f18; color: var(--text-primary);
+    border:1px solid rgba(255,255,255,0.12);
+    border-left:3px solid var(--primary);
+    padding:12px 14px; border-radius: var(--radius-md);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    opacity:0; transform: translateY(-6px);
+    pointer-events:none; z-index:3000;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    line-height:1.45;
+    }
+    .param-tip:hover .bubble,
+    .param-tip:focus-within .bubble { opacity:1; transform: translateY(0); }
+
+        /* add some breathing room under the Test size block */
+    .param-group.mb-lg {
+    margin-bottom: var(--space-xl); /* or var(--space-lg) if you want less */
+    }
+
 </style>
 {% endblock %}
 
@@ -622,25 +660,73 @@
 
             <!-- General Parameters -->
             <div class="param-group mb-lg">
-                <label for="id_test_size">{{ train_form.test_size.label }}</label>
-                {{ train_form.test_size }}
-                <div class="param-help">Proportion of dataset for testing (0.1 to 0.9)</div>
+            <label for="id_test_size">
+                {{ train_form.test_size.label }} <span style="color:var(--danger);">*</span>
+                <span class="param-tip">
+                <span class="hint" tabindex="0">?</span>
+                <span class="bubble">
+                    <strong>Test size</strong>: fraction of data reserved for evaluation.<br>
+                    <em>Range:</em> 0.10–0.90 (typical 0.20 or 0.30). Smaller = more train data, larger = stronger eval.
+                </span>
+                </span>
+            </label>
+
+            {{ train_form.test_size }}
+
+            <!-- NEW: inline errors for this field 
+            {% if train_form.test_size.errors %}
+
+            <div class="alert alert-error" style="margin-top:6px">
+                {{ train_form.test_size.errors|join:", " }}
+            </div>
+            {% endif %}
+            -->
             </div>
 
             <!-- Random Forest Parameters -->
             <div id="rf-params" class="model-params active">
                 <div class="param-group">
-                    <label for="id_rf_n_estimators">{{ train_form.rf_n_estimators.label }}</label>
+                    <label for="id_rf_n_estimators">
+                        {{ train_form.rf_n_estimators.label }}
+                        <span class="param-tip">
+                            <span class="hint" tabindex="0">?</span>
+                            <span class="bubble">
+                            <strong>n_estimators</strong>: number of trees.<br>
+                            <em>Range:</em> ≥ 1 (typical 100–500). Higher reduces variance but increases training time.
+                            </span>
+                        </span>
+                    </label>
+
                     {{ train_form.rf_n_estimators }}
                     <div class="param-help">{{ train_form.rf_n_estimators.help_text }}</div>
                 </div>
                 <div class="param-group">
-                    <label for="id_rf_max_depth">{{ train_form.rf_max_depth.label }}</label>
+                    <label for="id_rf_max_depth">
+                    {{ train_form.rf_max_depth.label }}
+                    <span class="param-tip">
+                        <span class="hint" tabindex="0">?</span>
+                        <span class="bubble">
+                        <strong>max_depth</strong>: maximum depth per tree.<br>
+                        <em>Values:</em> integer ≥ 1 or leave blank/None for unlimited. Typical 5–20. Lower = simpler, less overfit.
+                        </span>
+                    </span>
+                    </label>
+
                     {{ train_form.rf_max_depth }}
                     <div class="param-help">{{ train_form.rf_max_depth.help_text }}</div>
                 </div>
                 <div class="param-group">
-                    <label for="id_rf_max_features">{{ train_form.rf_max_features.label }}</label>
+                    <label for="id_rf_max_features">
+                    {{ train_form.rf_max_features.label }}
+                    <span class="param-tip">
+                        <span class="hint" tabindex="0">?</span>
+                        <span class="bubble">
+                        <strong>max_features</strong>: features considered at each split.<br>
+                        <em>Options:</em> <code>sqrt</code> (common for classification), <code>log2</code>, an integer, a float in (0,1], or None (all features).
+                        </span>
+                    </span>
+                    </label>
+
                     {{ train_form.rf_max_features }}
                     <div class="param-help">{{ train_form.rf_max_features.help_text }}</div>
                 </div>
@@ -649,17 +735,46 @@
             <!-- SVM Parameters -->
             <div id="svm-params" class="model-params">
                 <div class="param-group">
-                    <label for="id_svm_kernel">{{ train_form.svm_kernel.label }}</label>
+                    <label for="id_svm_kernel">
+                    {{ train_form.svm_kernel.label }}
+                    <span class="param-tip">
+                        <span class="hint" tabindex="0">?</span>
+                        <span class="bubble">
+                        <strong>kernel</strong>: mapping used by SVM.<br>
+                        <code>linear</code> (fast, high-dim), <code>rbf</code> (nonlinear default), <code>poly</code>, <code>sigmoid</code>.
+                        </span>
+                    </span>
+                    </label>
+
                     {{ train_form.svm_kernel }}
                     <div class="param-help">{{ train_form.svm_kernel.help_text }}</div>
                 </div>
                 <div class="param-group">
-                    <label for="id_svm_C">{{ train_form.svm_C.label }}</label>
+                    <label for="id_svm_C">
+                        {{ train_form.svm_C.label }}
+                        <span class="param-tip">
+                            <span class="hint" tabindex="0">?</span>
+                            <span class="bubble">
+                            <strong>C</strong>: inverse regularization strength.<br>
+                            <em>Range:</em> &gt; 0 (typical 0.01–10). Smaller C = stronger regularization (smoother boundary).
+                            </span>
+                        </span>
+                    </label>
+
                     {{ train_form.svm_C }}
                     <div class="param-help">{{ train_form.svm_C.help_text }}</div>
                 </div>
                 <div class="param-group">
-                    <label for="id_svm_gamma">{{ train_form.svm_gamma.label }}</label>
+                    <label for="id_svm_gamma">
+                    {{ train_form.svm_gamma.label }}
+                    <span class="param-tip">
+                        <span class="hint" tabindex="0">?</span>
+                        <span class="bubble">
+                        <strong>gamma</strong>: kernel coefficient (rbf/poly/sigmoid).<br>
+                        <em>Range:</em> float &gt; 0 (typical ≈ 1e-4 to 1). Larger = tighter, more complex boundary.
+                        </span>
+                    </span>
+                    </label>
                     {{ train_form.svm_gamma }}
                     <div class="param-help">{{ train_form.svm_gamma.help_text }}</div>
                 </div>
@@ -668,17 +783,47 @@
             <!-- XGBoost Parameters -->
             <div id="xgb-params" class="model-params">
                 <div class="param-group">
-                    <label for="id_xgb_n_estimators">{{ train_form.xgb_n_estimators.label }}</label>
+                    <label for="id_xgb_n_estimators">
+                    {{ train_form.xgb_n_estimators.label }}
+                    <span class="param-tip">
+                        <span class="hint" tabindex="0">?</span>
+                        <span class="bubble">
+                        <strong>n_estimators</strong>: boosting rounds (trees).<br>
+                        <em>Range:</em> ≥ 1 (typical 100–1000). More rounds can improve accuracy but may overfit unless regularized.
+                        </span>
+                    </span>
+                    </label>
+
                     {{ train_form.xgb_n_estimators }}
                     <div class="param-help">{{ train_form.xgb_n_estimators.help_text }}</div>
                 </div>
                 <div class="param-group">
-                    <label for="id_xgb_learning_rate">{{ train_form.xgb_learning_rate.label }}</label>
+                    <label for="id_xgb_learning_rate">
+                    {{ train_form.xgb_learning_rate.label }}
+                    <span class="param-tip">
+                        <span class="hint" tabindex="0">?</span>
+                        <span class="bubble">
+                        <strong>learning_rate (eta)</strong>: step size shrinkage.<br>
+                        <em>Range:</em> 0.01–0.3 (typical). Lower needs more estimators; higher learns faster but can overfit.
+                        </span>
+                    </span>
+                    </label>
+
                     {{ train_form.xgb_learning_rate }}
                     <div class="param-help">{{ train_form.xgb_learning_rate.help_text }}</div>
                 </div>
                 <div class="param-group">
-                    <label for="id_xgb_max_depth">{{ train_form.xgb_max_depth.label }}</label>
+                    <label for="id_xgb_max_depth">
+                    {{ train_form.xgb_max_depth.label }}
+                    <span class="param-tip">
+                        <span class="hint" tabindex="0">?</span>
+                        <span class="bubble">
+                        <strong>max_depth</strong>: depth of individual boosted trees.<br>
+                        <em>Range:</em> integer ≥ 1 (typical 3–10). Higher = more complex interactions.
+                        </span>
+                    </span>
+                    </label>
+
                     {{ train_form.xgb_max_depth }}
                     <div class="param-help">{{ train_form.xgb_max_depth.help_text }}</div>
                 </div>
@@ -882,174 +1027,179 @@
         const yFeatureIndex = parseInt(document.getElementById('y-feature').value);
         createChart(xFeatureIndex, yFeatureIndex);
     }
-    
-    // Model tab switching
+        
+    // Model tab switching + enable/disable inputs
     document.querySelectorAll('.model-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            // Remove active class from all tabs
-            document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.model-params').forEach(p => p.classList.remove('active'));
-            
-            // Add active class to clicked tab
-            this.classList.add('active');
-            
-            // Show corresponding parameters
-            const model = this.getAttribute('data-model');
-            document.getElementById(`${model}-params`).classList.add('active');
-            
-            // Update hidden field
-            document.getElementById('id_model_type').value = model;
+    tab.addEventListener('click', function () {
+        // tabs
+        document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+
+        // panels
+        const model = this.getAttribute('data-model');
+        document.querySelectorAll('.model-params').forEach(p => {
+        const active = p.id === `${model}-params`;
+        p.classList.toggle('active', active);
+        // enable active panel inputs, disable the others
+        p.querySelectorAll('input, select, textarea').forEach(el => el.disabled = !active);
         });
     });
-    
+    });
+
+    // On load: make only the default active panel enabled
+    window.addEventListener('load', () => {
+    const active = document.querySelector('.model-tab.active')?.getAttribute('data-model') || 'rf';
+    document.querySelectorAll('.model-params').forEach(p => {
+        const isActive = p.id === `${active}-params`;
+        p.classList.toggle('active', isActive);
+        p.querySelectorAll('input, select, textarea').forEach(el => el.disabled = !isActive);
+    });
+    });
+
+        
     // Form submission with loading state
     document.getElementById('train-model-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        
-        const form = event.target;
-        const formData = new FormData(form);
-        const resultContainer = document.getElementById('model-result');
-        const loader = document.getElementById('training-loader');
-        
-        // Show loading state
-        loader.classList.add('active');
-        resultContainer.innerHTML = '';
-        
-        // Add model-specific parameters
-        const activeTab = document.querySelector('.model-tab.active');
-        const modelType = activeTab.getAttribute('data-model');
-        formData.append('model_type', modelType);
-        
-        if (modelType === 'rf') {
-            formData.append('rf_n_estimators', document.getElementById('id_rf_n_estimators').value);
-            formData.append('rf_max_depth', document.getElementById('id_rf_max_depth').value);
-            formData.append('rf_max_features', document.getElementById('id_rf_max_features').value);
-        } else if (modelType === 'svm') {
-            formData.append('svm_kernel', document.getElementById('id_svm_kernel').value);
-            formData.append('svm_C', document.getElementById('id_svm_C').value);
-            formData.append('svm_gamma', document.getElementById('id_svm_gamma').value);
-        } else if (modelType === 'xgb') {
-            formData.append('xgb_n_estimators', document.getElementById('id_xgb_n_estimators').value);
-            formData.append('xgb_learning_rate', document.getElementById('id_xgb_learning_rate').value);
-            formData.append('xgb_max_depth', document.getElementById('id_xgb_max_depth').value);
-        }
-        
-        // Send AJAX request
-        fetch("{% url 'project1:train_model_ajax' %}", {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            loader.classList.remove('active');
-            
-            if (data.error) {
-                resultContainer.innerHTML = `
-                    <div class="alert alert-error">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        ${data.error}
-                    </div>
-                `;
-                return;
-            }
-            
-            // Display results
-            let html = `
-                <div class="results-section">
-                    <div class="results-header">
-                        <div class="results-icon">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                        <div>
-                            <h4 class="results-title">Model Performance Results</h4>
-                            <p>Training completed successfully with ${modelType.toUpperCase()} algorithm</p>
-                        </div>
-                    </div>
-                    
-                    <div class="metrics-grid">
-            `;
-            
-            // Calculate overall metrics
-            let totalPrecision = 0, totalRecall = 0, totalF1 = 0, count = 0;
-            
-            for (let label in data.report) {
-                if (data.report[label].precision !== undefined) {
-                    totalPrecision += data.report[label].precision;
-                    totalRecall += data.report[label].recall;
-                    totalF1 += data.report[label].f1_score;
-                    count++;
-                }
-            }
-            
-            const avgPrecision = (totalPrecision / count).toFixed(2);
-            const avgRecall = (totalRecall / count).toFixed(2);
-            const avgF1 = (totalF1 / count).toFixed(2);
-            
-            html += `
-                        <div class="metric-card">
-                            <div class="metric-label">Average Precision</div>
-                            <div class="metric-value">${avgPrecision}</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Average Recall</div>
-                            <div class="metric-value">${avgRecall}</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Average F1-Score</div>
-                            <div class="metric-value">${avgF1}</div>
-                        </div>
-                    </div>
-                    
-                    <h4><i class="fas fa-table"></i> Detailed Performance by Class</h4>
-                    <table class="results-table">
-                        <thead>
-                            <tr>
-                                <th>Class</th>
-                                <th>Precision</th>
-                                <th>Recall</th>
-                                <th>F1-Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            for (let label in data.report) {
-                let metrics = data.report[label];
-                if (metrics.precision !== undefined) {
-                    html += `
-                        <tr>
-                            <td><strong>${label}</strong></td>
-                            <td>${metrics.precision}</td>
-                            <td>${metrics.recall}</td>
-                            <td>${metrics.f1_score}</td>
-                        </tr>
-                    `;
-                }
-            }
-            
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            resultContainer.innerHTML = html;
-        })
-        .catch(err => {
-            loader.classList.remove('active');
-            resultContainer.innerHTML = `
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Network error: ${err.message}
-                </div>
-            `;
-        });
-    });
+    event.preventDefault();
     
+    const form = event.target;
+    const formData = new FormData(form);
+    const resultContainer = document.getElementById('model-result');
+    const loader = document.getElementById('training-loader');
+
+    // Validate test size BEFORE showing loader
+    const testSizeInput = document.getElementById('id_test_size');
+    if (testSizeInput) {
+        const v = parseFloat(testSizeInput.value);
+        if (Number.isNaN(v) || v < 0.1 || v > 0.9) {
+        testSizeInput.setCustomValidity('Enter a value between 0.10 and 0.90.');
+        testSizeInput.reportValidity(); // native bubble
+        return; // stop submit
+        }
+        // normalize to 2 decimals for consistency
+        testSizeInput.value = v.toFixed(2);
+    }
+
+    // Show loading state
+    loader.classList.add('active');
+    resultContainer.innerHTML = '';
+
+    // Model type from active tab; FormData will include only enabled inputs
+    const activeTab = document.querySelector('.model-tab.active');
+    const modelType = activeTab.getAttribute('data-model');
+    formData.append('model_type', modelType);
+
+    // Send AJAX request
+    fetch("{% url 'project1:train_model_ajax' %}", {
+        method: 'POST',
+        headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        loader.classList.remove('active');
+
+        if (data.error) {
+        resultContainer.innerHTML = `
+            <div class="alert alert-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            ${data.error}
+            </div>`;
+        return;
+        }
+
+        // Build results UI
+        let html = `
+        <div class="results-section">
+            <div class="results-header">
+            <div class="results-icon">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <div>
+                <h4 class="results-title">Model Performance Results</h4>
+                <p>Training completed successfully with ${modelType.toUpperCase()} algorithm</p>
+            </div>
+            </div>
+
+            <div class="metrics-grid">
+        `;
+
+        // Averages
+        let totalPrecision = 0, totalRecall = 0, totalF1 = 0, count = 0;
+        for (let label in data.report) {
+        const m = data.report[label];
+        if (m && typeof m.precision !== 'undefined') {
+            totalPrecision += m.precision;
+            totalRecall += m.recall;
+            totalF1 += m.f1_score;
+            count++;
+        }
+        }
+        const avgPrecision = count ? (totalPrecision / count).toFixed(2) : '0.00';
+        const avgRecall   = count ? (totalRecall / count).toFixed(2)   : '0.00';
+        const avgF1       = count ? (totalF1 / count).toFixed(2)       : '0.00';
+
+        html += `
+            <div class="metric-card">
+            <div class="metric-label">Average Precision</div>
+            <div class="metric-value">${avgPrecision}</div>
+            </div>
+            <div class="metric-card">
+            <div class="metric-label">Average Recall</div>
+            <div class="metric-value">${avgRecall}</div>
+            </div>
+            <div class="metric-card">
+            <div class="metric-label">Average F1-Score</div>
+            <div class="metric-value">${avgF1}</div>
+            </div>
+        </div>
+
+        <h4><i class="fas fa-table"></i> Detailed Performance by Class</h4>
+        <table class="results-table">
+            <thead>
+            <tr>
+                <th>Class</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>F1-Score</th>
+            </tr>
+            </thead>
+            <tbody>
+        `;
+
+        for (let label in data.report) {
+        const m = data.report[label];
+        if (m && typeof m.precision !== 'undefined') {
+            html += `
+            <tr>
+                <td><strong>${label}</strong></td>
+                <td>${m.precision}</td>
+                <td>${m.recall}</td>
+                <td>${m.f1_score}</td>
+            </tr>`;
+        }
+        }
+
+        html += `
+            </tbody>
+        </table>
+        </div>`;
+
+        resultContainer.innerHTML = html;
+    })
+    .catch(err => {
+        loader.classList.remove('active');
+        resultContainer.innerHTML = `
+        <div class="alert alert-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            Network error: ${err.message}
+        </div>`;
+    });
+    });
+
+
     // File upload enhancements
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.querySelector('input[type="file"]');

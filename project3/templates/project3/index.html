@@ -294,23 +294,80 @@
         </div>
         </div>
 
-        <!-- (Optional) Plausibility & diversity toggles — still in this one panel -->
+        <!-- Plausibility & Diversity controls -->
         <div class="info-grid" style="margin-top: var(--space-md);">
+
+        <!-- Plausibility -->
         <div class="info-item">
-            <label style="display:flex;align-items:center;gap:8px;" data-tip="Filters out points far from training data in feature space using k-NN density.">
-            <input type="checkbox" id="cf-plaus" checked> Enforce plausibility (kNN density)
+            <div class="info-label">
+            <span class="tooltip">
+                Enforce plausibility (k-NN density)
+                <span class="hint" tabindex="0">?</span>
+                <span class="bubble">
+                Filters out points far from training data in feature space using k-NN density.
+                Keeps only candidates in dense regions.
+                </span>
+            </span>
+            </div>
+
+            <!-- simple checkbox (styled like a plain control; chips are for lists) -->
+            <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="cf-plaus" checked
+                    aria-label="Enable plausibility filter (k-NN density)">
             </label>
-            <div class="info-label" style="margin-top:8px;">Keep densest quantile</div>
-            <input id="cf-dens-q" type="number" min="0" max="1" step="0.05" value="0.7" class="form-control" />
+
+
+            <div class="compact-field">
+            <label for="cf-dens-q" class="text-muted">
+                <span class="tooltip">
+                Keep densest quantile
+                <span class="hint" tabindex="0">?</span>
+                <span class="bubble">
+                    Quantile q ∈ [0.50, 1.00]. Keeps the densest q of candidates by average 10-NN distance.
+                    Higher q = keep more (looser). Lower q = stricter.
+                </span>
+                </span>
+            </label>
+            <input id="cf-dens-q" type="number" min="0.5" max="1" step="0.05" value="0.70" class="form-control small">
+            </div>
         </div>
+
+        <!-- Diversity -->
         <div class="info-item">
-            <label style="display:flex;align-items:center;gap:8px;" data-tip="Avoid near-duplicate counterfactuals using a minimum MAD-weighted L1 distance.">
-            <input type="checkbox" id="cf-diverse" checked> Enforce diversity (min MAD-L1)
+            <div class="info-label">
+            <span class="tooltip">
+                Enforce diversity (minimum MAD-L1)
+                <span class="hint" tabindex="0">?</span>
+                <span class="bubble">
+                Avoid near-duplicate counterfactuals by enforcing a minimum MAD-weighted L1 distance between them.
+                Larger threshold ⇒ more variety, but potentially fewer CFs found.
+                </span>
+            </span>
+            </div>
+
+            <!-- simple checkbox -->
+            <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="cf-diverse" checked
+                    aria-label="Enable diversity constraint (minimum MAD-L1)">
             </label>
-            <div class="info-label" style="margin-top:8px;">Min MAD-L1 between CFs</div>
-            <input id="cf-div-min" type="number" min="0" step="0.05" value="0.2" class="form-control" />
+
+            <div class="compact-field">
+            <label for="cf-div-min" class="text-muted">
+                <span class="tooltip">
+                Min MAD-L1 between CFs
+                <span class="hint" tabindex="0">?</span>
+                <span class="bubble">
+                    Minimum pairwise MAD-weighted L1 distance between chosen CFs.
+                    Typical: 0.20–0.40.
+                </span>
+                </span>
+            </label>
+            <input id="cf-div-min" type="number" min="0" step="0.05" value="0.20" class="form-control small">
+            </div>
         </div>
+
         </div>
+
 
         <!-- Single button at the very bottom -->
         <div style="margin-top: var(--space-lg); text-align:center;">
@@ -494,21 +551,91 @@
         }
 
         function renderCFTable(payload) {
-            if (!payload || !payload.counterfactuals || payload.counterfactuals.length === 0) {
-            cfResults.innerHTML = '<div class="text-center" style="color:var(--text-secondary);">No counterfactuals found. Try increasing N or choosing a different target label.</div>';
+        if (!payload || !payload.counterfactuals || payload.counterfactuals.length === 0) {
+            cfResults.innerHTML =
+            '<div class="text-center" style="color:var(--text-secondary);">No counterfactuals found. Try increasing N or choosing a different target label.</div>';
             return;
-            }
-            const cols = payload.feature_names || Object.keys(payload.counterfactuals[0].features);
-            let thead = '<thead><tr>' + cols.map(c => `<th style="white-space:nowrap; padding:6px 10px; text-align:left;">${c}</th>`).join('') +
-            `<th style="padding:6px 10px; text-align:left;">MAD-L1</th><th style="padding:6px 10px; text-align:left;">P(target)</th></tr></thead>`;
-            let rows = payload.counterfactuals.map(r => {
-            const featCells = cols.map(c => `<td style="padding:6px 10px;">${(+r.features[c]).toFixed(3)}</td>`).join('');
+        }
+
+        const cols = payload.feature_names || Object.keys(payload.counterfactuals[0].features);
+
+        // Header cells for features
+        const featureHeads = cols
+            .map(c => `<th style="white-space:nowrap; padding:6px 10px; text-align:left;">${c}</th>`)
+            .join('');
+
+        // Tooltipped headers for MAD-L1 and P(target)
+        const madTh = `
+            <th style="padding:6px 10px; text-align:left; white-space:nowrap;">
+            MAD-L1
+            <span class="tooltip" aria-label="MAD-weighted L1 distance">
+                <span class="hint" tabindex="0">?</span>
+                <span class="bubble">
+                <strong>MAD-weighted L1 distance</strong><br>
+                Sum over features of |Δx<sub>j</sub>| divided by the feature’s
+                <em>Median Absolute Deviation (MAD)</em> on the training data.<br>
+                <strong>Interpretation:</strong> smaller = closer to the original instance
+                (lower “edit cost” to reach the target class).
+                </span>
+            </span>
+            </th>`;
+
+        const pTh = `
+            <th style="padding:6px 10px; text-align:left; white-space:nowrap;">
+            P(target)
+            <span class="tooltip" aria-label="Probability of target class">
+                <span class="hint" tabindex="0">?</span>
+                <span class="bubble">
+                <strong>Predicted probability of the target class</strong><br>
+                Model’s confidence for the chosen target label on the proposed counterfactual.
+                <br><strong>Interpretation:</strong> higher = more confident flip to the target class.
+                </span>
+            </span>
+            </th>`;
+
+        const thead = `<thead><tr>${featureHeads}${madTh}${pTh}</tr></thead>`;
+
+        // Body rows
+        const rows = payload.counterfactuals.map(r => {
+            const featCells = cols
+            .map(c => `<td style="padding:6px 10px;">${(+r.features[c]).toFixed(3)}</td>`)
+            .join('');
             const dist = (r.mad_weighted_l1 != null) ? r.mad_weighted_l1.toFixed(3) : '';
             const prob = (r.target_prob == null) ? '' : r.target_prob.toFixed(3);
             return `<tr>${featCells}<td style="padding:6px 10px;">${dist}</td><td style="padding:6px 10px;">${prob}</td></tr>`;
-            }).join('');
-            cfResults.innerHTML = `<div style="overflow:auto;"><table style="width:100%; border-collapse:collapse;">
-            ${thead}<tbody>${rows}</tbody></table></div>`;
+        }).join('');
+
+        cfResults.innerHTML = `
+            <div class="cf-table-wrap"">
+            <table style="width:100%; border-collapse:collapse;">
+                ${thead}
+                <tbody>${rows}</tbody>
+            </table>
+            </div>
+        `;
+
+        // Add a once-only legend below the table
+        if (!document.getElementById('cf-legend')) {
+            const legend = document.createElement('div');
+            legend.id = 'cf-legend';
+            legend.style.cssText = `
+            margin-top: var(--space-sm);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-sm) var(--space-md);
+            `;
+            legend.innerHTML = `
+            <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
+                <div><strong>MAD-L1</strong>: distance weighted by feature dispersion (MAD). Lower = smaller change.</div>
+                <div><strong>P(target)</strong>: model confidence for your chosen target label on each CF. Higher = better.</div>
+                <div>Values are rounded to 3 decimals.</div>
+            </div>
+            `;
+            cfResults.parentElement.appendChild(legend);
+        }
         }
 
                 // Helper: collect checked values from a checkbox grid by container id
