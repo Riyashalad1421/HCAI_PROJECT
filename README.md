@@ -189,7 +189,7 @@ pip install torch torchvision numpy matplotlib
    - Place in: `project1/89d88c5528513adc4002a1618ce2efb0_iris.csv/`
 
 2. **Project 2: IMDB Reviews**
-   - Download from: https://ai.stanford.edu/~amaas/data/sentiment/
+   - Download from: (https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews?resource=download) 
 
 3. **Project 3: Palmer Penguins**
    - Automatically downloaded via palmerpenguins package
