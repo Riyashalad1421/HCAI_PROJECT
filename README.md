@@ -116,7 +116,7 @@ Explainable AI interface using Palmer Penguins dataset:
 - Interactive sparsity sliders (λ parameter control)
 - Counterfactual explanation generation
 
-**Key Technologies**: scikit-learn, GOSDT, visualization libraries
+**Key Technologies**: scikit-learn, visualization libraries
 **Dataset**: Palmer Penguins (via palmerpenguins package)
 
 ### Project 4: Recommender Systems with User Study
