@@ -34,7 +34,7 @@ python manage.py runserver
 
 ### Manual Setup Required
 - **Project 1**: User uploads the CSV file (IRIS)
-- **Project 2 Only**: IMDB 50k Reviews
+- **Project 2**: IMDB 50k Reviews
   - Download : https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews?resource=download
   - User uploads the IMDB dataset
 
