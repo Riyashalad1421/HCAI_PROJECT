@@ -190,7 +190,6 @@ pip install torch torchvision numpy matplotlib
 
 2. **Project 2: IMDB Reviews**
    - Download from: https://ai.stanford.edu/~amaas/data/sentiment/
-   - Place in: `project2/data/imdb_reviews/`
 
 3. **Project 3: Palmer Penguins**
    - Automatically downloaded via palmerpenguins package
