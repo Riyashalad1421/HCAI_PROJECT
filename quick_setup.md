@@ -17,7 +17,7 @@ source venv/bin/activate  # Linux/Mac
 # For windows system
 pip install -r requirements_windows.txt
 
-# For Mac/OS system
+# For MacOS system
 pip install -r requirements_MacOS.txt
 
 # Setup database
