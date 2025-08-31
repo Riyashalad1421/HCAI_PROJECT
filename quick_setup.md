@@ -13,7 +13,12 @@ source venv/bin/activate  # Linux/Mac
 # OR: venv\Scripts\activate  # Windows
 
 # Install all dependencies
-pip install -r requirements.txt
+
+# For windows system
+pip install -r requirements_windows.txt
+
+# For Mac/OS system
+pip install -r requirements_MacOS.txt
 
 # Setup database
 python manage.py makemigrations
