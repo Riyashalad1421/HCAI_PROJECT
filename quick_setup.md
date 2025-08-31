@@ -28,15 +28,15 @@ python manage.py runserver
 ## Required Datasets
 
 ### Automatic (No Setup Needed)
-- **Project 1**: Uses uploaded CSV files
 - **Project 3**: Palmer Penguins (auto-downloaded)
 - **Project 4**: MovieLens data included in repo
 - **Project 5**: Custom grid environment (included)
 
 ### Manual Setup Required
-**Project 2 Only**: IMDB 50k Reviews
-- Download: https://ai.stanford.edu/~amaas/data/sentiment/
-- Extract to: `project2/data/imdb_reviews/`
+- **Project 1**: User uploads the CSV file (IRIS)
+- **Project 2 Only**: IMDB 50k Reviews
+  - Download : https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews?resource=download
+  - User uploads the IMDB dataset
 
 ## Project Access URLs
 - **Home/Navigation**: `/home/`
