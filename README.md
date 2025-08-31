@@ -88,16 +88,17 @@ An end-to-end supervised learning interface allowing users to:
 - Visualize data with interactive plots
 - Train multiple ML models (classification models for this project)
 - Compare model performance with hyperparameter tuning
-- Export results and trained models
+
 
 **Key Technologies**: scikit-learn, pandas, matplotlib, seaborn
-**Datasets**: User-uploaded CSV files (Iris, Wine, Boston Housing examples provided)
+**Datasets**: User-uploaded CSV files (Iris)
 
 ### Project 2: Active Learning for Text Classification
 **URL**: `/project2/`
 
 Interactive text classification system implementing active learning strategies:
 - Sentiment analysis on IMDB movie reviews (50k dataset)
+- Upload the IMDB reviews dataset
 - Pool-based active learning with multiple utility functions
 - Real-time model training with user feedback
 - Batch and stream-based active learning extensions
@@ -114,7 +115,6 @@ Explainable AI interface using Palmer Penguins dataset:
 - Logistic regression with feature importance
 - Interactive sparsity sliders (λ parameter control)
 - Counterfactual explanation generation
-- Model complexity vs. accuracy trade-offs
 
 **Key Technologies**: scikit-learn, GOSDT, visualization libraries
 **Dataset**: Palmer Penguins (via palmerpenguins package)
@@ -205,19 +205,12 @@ pip install torch torchvision numpy matplotlib
 
 ## Usage Guide
 
-### For Students/Developers
-
 1. **Start with the home page** (`/home/`) to understand the overall structure
-2. **Navigate to individual projects** using the provided links
-3. **Follow project-specific instructions** in each app's documentation
-4. **Check console logs** for debugging information during development
-
-### For Instructors/Evaluators
-
-1. **Access the main navigation** at `/home/`
-2. **Each project is self-contained** with its own interface and documentation
-3. **All required dependencies** are listed in requirements.txt
-4. **Database migrations** handle any required data models automatically
+2. **Each project is self-contained** with its own interface
+3. **Navigate to individual projects** using the provided links
+4. **Follow project-specific instructions**
+5. **All required dependencies** are listed in requirements.txt
+6. **Database migrations** handle any required data models automatically
 
 ## Development Notes
 
@@ -257,16 +250,6 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-### Dataset Loading Problems
-- Verify dataset files are in correct locations
-- Check file formats match expected CSV structure
-- Ensure sufficient disk space for large datasets
-
-### Performance Issues
-- Large datasets may require longer processing times
-- Consider using smaller dataset samples during development
-- Monitor memory usage with memory-intensive operations
-
 ## Extending the Projects
 
 ### Adding New Features
@@ -290,13 +273,6 @@ python manage.py migrate
 - **User Studies**: Design and implement human-centered evaluation methodologies
 - **Ethical AI**: Consider human factors in AI system design and deployment
 
-### Evaluation Criteria
-- **Functionality**: All features work as specified
-- **User Experience**: Intuitive and responsive interfaces
-- **Code Quality**: Clean, documented, and maintainable code
-- **Innovation**: Creative approaches to human-centric AI challenges
-- **Documentation**: Clear instructions and explanations
-
 ## Technical Specifications
 
 ### System Requirements
@@ -313,31 +289,9 @@ python manage.py migrate
 - **Project 4**: 9k movies, 600 users recommendation matrix
 - **Project 5**: 60+ FPS grid-world visualization
 
-## Contributing
-
-### Code Standards
-- Follow PEP 8 Python style guidelines
-- Use meaningful variable and function names
-- Include docstrings for all functions and classes
-- Add comments for complex algorithms or business logic
-
-### Testing
-- Test all user workflows manually
-- Verify responsive design on multiple devices
-- Check error handling with invalid inputs
-- Validate data export/import functionality
-
 ## License and Usage
 
 This project is developed for academic purposes as part of the Human-Centric Artificial Intelligence course. All code and documentation are provided for educational use.
-
-## Support and Contact
-
-For technical issues or questions about the implementation, refer to:
-1. Individual project documentation in respective directories
-2. Django official documentation
-3. Library-specific documentation for scikit-learn, PyTorch, etc.
-4. Course materials and lecture notes
 
 ---
 
