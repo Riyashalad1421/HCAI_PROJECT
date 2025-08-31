@@ -52,6 +52,6 @@ xgboost==3.0.1
 # Critical dependencies for each project:
 # Project 1: scikit-learn, pandas, matplotlib
 # Project 2: nltk, spacy, transformers, datasets  
-# Project 3: palmerpenguins, gosdt, shap
+# Project 3: palmerpenguins, shap
 # Project 4: pandas, numpy, reportlab
 # Project 5: torch, gym, pygame
