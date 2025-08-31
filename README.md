@@ -59,8 +59,13 @@ source venv/bin/activate
 ```
 
 3. **Install all dependencies**
+  - For MacOS systems
 ```bash
-pip install -r requirements.txt
+pip install -r requirements_MacOs.txt
+```
+  - For Windows system
+```bash
+pip install -r requirements_windows.txt
 ```
 
 4. **Download required datasets** (see individual project sections below)
