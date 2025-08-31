@@ -27,7 +27,8 @@ HCAI-PBL/
 ├── manage.py                      # Django management script
 ├── quick_setup.md                 # Quick Setup Guide for Instructor
 ├── README.md                      # This documentation
-└── requirements.txt               # All project dependencies
+└── requirements_MacOS.txt         # All project dependencies
+└── requirements_windows.txt       # All project dependencies
 ```
 
 ## Quick Start
