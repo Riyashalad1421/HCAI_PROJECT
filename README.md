@@ -171,7 +171,6 @@ python -m spacy download en_core_web_sm
 ```bash
 # Decision trees and interpretability
 pip install scikit-learn palmerpenguins pandas numpy
-pip install gosdt  # For sparse decision trees
 ```
 
 ### Project 4 Dependencies
